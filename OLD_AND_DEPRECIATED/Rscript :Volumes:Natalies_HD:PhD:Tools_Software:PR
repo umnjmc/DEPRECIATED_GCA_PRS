@@ -1,0 +1,8 @@
+Rscript /Volumes/Natalies_HD/PhD/Tools_Software/PRSice.R --prsice /Volumes/Natalies_HD/PhD/Tools_Software/PRSice_mac --base /Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/Sun_OSMR_10892_ALL.txt --snp New_Marker --chr chromosome --bp position --A1 Allele1 --A2 Allele2 --stat Beta --pvalue P --target /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/chr# --out /Volumes/Natalies_HD/PhD/GCA_PRS/PRSice/OSMR/OSMR --cov /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/PCA/PCA.eigenvec --print-snp --extract /Volumes/Natalies_HD/PhD/GCA_PRS/PRSice/JAK2/JAK2.valid --quantile 20 
+
+
+NEED TO RUN OSMR
+
+
+
+

@@ -1,0 +1,23 @@
+Template
+
+
+Rscript /Volumes/Natalies_HD/PhD/GCA_PRS/Automation_Protein.R \
+ /Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/TEMPS/CD86.5337.64.3 `#Sun_data_location`\
+ /Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/Sun_CD86_5337_ALL.txt `#New_Sun_file_location`\
+ /Volumes/Natalies_HD/PhD/GCA_PRS/PRSice/CD86 `#Protein_directory` \
+ /Volumes/Natalies_HD/PhD/Tools_Software/PRSice.R `#PRSice R location`\
+ /Volumes/Natalies_HD/PhD/Tools_Software/PRSice_mac `#PRSice binary location`\
+ /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/chr# `#GCA data location`\
+ /Volumes/Natalies_HD/PhD/GCA_PRS/PRSice/CD86/CD86 `#Data output`\
+ /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/PCA/PCA.eigenvec `#PCA input`\
+ /Volumes/Natalies_HD/PhD/GCA_PRS/PRSice/JAK2/JAK2.valid `#Extract`
+ 
+
+
+
+REDO RELB, STAT6, OSMR
+
+
+
+
+Rscript /Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/Automation_Protein.R /Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/TEMPS/JAK2.4998.50.2 JAK2_4998

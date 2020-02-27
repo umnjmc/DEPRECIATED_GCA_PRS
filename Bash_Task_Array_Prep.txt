@@ -1,0 +1,17 @@
+Bash Task Array Prep
+
+
+*Bash script to prep for setting up a task array
+
+
+STEP 1 - make list of proteins/protein complexes in Sun data folder [BASH]
+
+/path/to/Sun_directory > files_to_do.txt
+
+
+
+STEP 2 - match secretome names with names in Sun data folder [BASH]
+
+sed 's/^/^/' Names.txt | grep -f- files_to_do.txt > matched_names.txt
+
+*Where Names.txt is the list of shorter names (from Secretome R code) and files_to_do.txt is the list of longer names from the Sun folder

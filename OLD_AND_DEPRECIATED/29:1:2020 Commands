@@ -1,0 +1,69 @@
+31/1/2020 Commands 
+
+
+
+starting from 6.30 ending at 4.30ish : 12 proteins
+10 hours / 12 proteins = approx 50 mins per protein
+
+
+ADAMTS1_3174 >> ADGRF1_11243  && ADGRG5_4551
+
+
+***ARC*** Rscript /Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/Automation_Protein.R /Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/TEMPS/ADGRF5.6409.57.3 ADGRF5_6409 
+
+
+
+
+
+Rscript /Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/Automation_Protein.R /Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/TEMPS/ADH1B.9834.62.3 ADH1B_9834 &&
+
+Rscript /Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/Automation_Protein.R /Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/TEMPS/ADH4.8325.37.3 ADH4_8325 &&
+
+Rscript /Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/Automation_Protein.R /Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/TEMPS/ADM.14115.34.3 ADM_14115 &&
+
+Rscript /Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/Automation_Protein.R /Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/TEMPS/ADPGK.6221.1.3 ADPGK_6221 && 
+
+Rscript /Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/Automation_Protein.R /Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/TEMPS/ADRBK1.3347.9.2 ADRBK1_3347 && 
+
+Rscript /Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/Automation_Protein.R /Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/TEMPS/ADSS.12644.63.3 ADSS_12644 && 
+
+Rscript /Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/Automation_Protein.R /Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/TEMPS/ADSSL1.13998.26.3 ADSSL1_13998 && 
+
+Rscript /Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/Automation_Protein.R /Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/TEMPS/AFP.5792.8.2 AFP_5792 && 
+
+Rscript /Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/Automation_Protein.R /Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/TEMPS/AGER.4125.52.2 AGER_4125 && 
+
+Rscript /Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/Automation_Protein.R /Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/TEMPS/AGFG1.11681.8.3 AGFG1_11681 && 
+
+Rscript /Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/Automation_Protein.R /Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/TEMPS/AGGF1.8051.10.3 AGGF1_8051 && 
+
+Rscript /Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/Automation_Protein.R /Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/TEMPS/AGO1.11651.24.3 AGO1_11651 && 
+
+Rscript /Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/Automation_Protein.R /Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/TEMPS/AGR2.4959.2.1 AGR2_4959 && 
+
+Rscript /Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/Automation_Protein.R /Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/TEMPS/AGRP.2813.11.2 AGRP_2813 && 
+
+Rscript /Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/Automation_Protein.R /Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/TEMPS/AHSA1.11633.89.3 AHSA1_11633 && 
+
+
+
+
+AFTER AHSA1 - TEST NEW Automation_Protein_V2.R CODE
+
+
+
+
+
+****FOR ARC TEST*****
+Rscript /home/home02/umnjmc/GCA_PRS/Scripts/Arc_Automation_Protein.R /nobackup/umnjmc/Sun_data/TEMPS/ADGRF5.6409.57.3 ADGRF5_6409 
+
+
+
+
+
+
+
+
+
+
+
