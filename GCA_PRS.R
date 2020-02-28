@@ -383,3 +383,58 @@ p
 
 
 
+
+##### PHENOSCANNER - APOL1 #####
+
+library(devtools)
+library(phenoscanner)
+
+
+#load in APOL1_SNPs, refine by correct p value, keep only SNP chr:positions and add "chr" before for use in phenoscanner
+APOL1_SNPs <- fread("/Users/natalie/Downloads/APOL1.9506.10.3.snp")
+APOL1_SNPs <- APOL1_SNPs[APOL1_SNPs$P <= 0.00170005,]
+APOL1_SNPs <- as.data.frame(APOL1_SNPs[,APOL1_SNPs$SNP])
+APOL1_SNPs$`APOL1_SNPs[, APOL1_SNPs$SNP]` <- paste0("chr", APOL1_SNPs$`APOL1_SNPs[, APOL1_SNPs$SNP]`)
+
+#split APOL1 SNPs into groups of 100 for input into phenoscanner
+split <- split(APOL1_SNPs, (seq(nrow(APOL1_SNPs))-1) %/% 100) 
+
+
+
+#for each group of 100 proteins...
+#turn into list
+temp_table <- split[[23]]
+temp_table <- as.character(temp_table$`APOL1_SNPs[, APOL1_SNPs$SNP]`) 
+#use phenoscanner to get GWAS, pQTL and SNP results
+res_1 <- phenoscanner(snpquery= temp_table) 
+res_2 <- phenoscanner(snpquery= temp_table, catalogue = "pQTL")
+#write into tables
+write.table(res_1$results, "/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/R_RESULTS/23_GWAS.txt", quote = F, sep = "\t", row.names = F)
+write.table(res_2$results, "/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/R_RESULTS/23_pQTL.txt", quote = F, sep = "\t", row.names = F)
+write.table(res_1$snps, "/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/R_RESULTS/23_SNPs.txt", quote = F, sep = "\t", row.names = F)
+
+
+
+#read in APOL1 results tables, merge and save (apply for SNPs, GWAS and pQTL results)
+
+setwd("/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/R_RESULTS")
+file_list <- list.files(pattern = "_pQTL.txt")
+for (file in file_list){
+
+  # if the merged dataset doesn't exist, create it
+  if (!exists("dataset")){
+    dataset <- read.table(file, header=TRUE, sep="\t")
+  }
+  
+  # if the merged dataset does exist, append to it
+  if (exists("dataset")){
+    temp_dataset <-read.table(file, header=TRUE, sep="\t")
+    dataset<-rbind(dataset, temp_dataset)
+    rm(temp_dataset)
+  }
+  
+}
+
+write.table(dataset, "/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_pQTL.txt", quote = F, sep = "\t", row.names = F)
+
+
