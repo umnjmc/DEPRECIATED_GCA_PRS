@@ -438,3 +438,20 @@ for (file in file_list){
 write.table(dataset, "/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_pQTL.txt", quote = F, sep = "\t", row.names = F)
 
 
+
+##### MENDELIAN RANDOMIZATION #####
+
+library(data.table)
+library(MendelianRandomization)
+
+SNPs <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_SNPs.txt")
+SNPs <- unique(SNPs$rsid)
+
+phenoscanner()
+
+  
+  
+  
+  
+  
+  
