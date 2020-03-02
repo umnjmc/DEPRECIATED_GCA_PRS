@@ -95,3 +95,44 @@ Step 4c) PCA regions (thought to influence PCA) kept in
 
 
 
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+GWAS [PLINK]
+
+
+Step a) QC
+
+##/Volumes/Natalies_HD/PhD/Tools_Software/plink2 --vcf /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_VCFs/chr22.dose.vcf.gz --out /Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/chr22_GWAS --double-id --allow-no-sex --pheno /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/allccIDs.txt --maf 0.01 --geno 0.03 --make-bed --recode
+
+##/Volumes/Natalies_HD/PhD/Tools_Software/plink2 --vcf /Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/chr22_GWAS.recode.vcf --extract-col-cond-min 0.5 --extract-col-cond /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/chr14/chr.14_infonew.txt 10 3 '#' --recode --out /Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/chr22_GWAS_2
+
+/Volumes/Natalies_HD/PhD/Tools_Software/plink --bfile /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/chr22 --recode vcf --out /Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/chr22_GWAS --allow-no-sex --double-id
+
+./DosageConvertor --vcfDose /Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/chr22_GWAS.vcf --type plink --format "1" --prefix chr22_GWAS_2 
+
+
+
+
+
+
+/Volumes/Natalies_HD/PhD/Tools_Software/plink --dosage /Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/chr22_GWAS.vcf format=1 case-control-freqs --fam /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/chr22.fam --allow-no-sex --logistic --pheno /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/allccIDs.txt --double-id --covar /Volumes/Natalies_HD/PhD/GCA_PRS/Results/PCA/EIGENVAR/PCA_RR_for_eigenvar.eigenvec --out /Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/chr22_GWAS_2
+
+
+
+
+
+
+
+
+/Volumes/Natalies_HD/PhD/Tools_Software/plink --bfile /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/all_chr --r2 --out /Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/all_chr_r2
+
+
+
+
+
+
+

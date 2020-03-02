@@ -439,6 +439,96 @@ write.table(dataset, "/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_
 
 
 
+##### MR PREP ######
+
+library(data.table)
+library(MendelianRandomization)
+
+
+#load r2 table and narrow down to SNPs 
+r2 <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/all_chr_r2.ld")
+
+
+
+
+#load APOL1 and create new marker column
+APOL1 <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/Sun_APOL1.9506.10.3_ALL.txt")
+New_Marker <- function(tablename, chromosome, location) {
+  tablename$New_Marker <- paste(chromosome, location, sep = ":")
+}
+APOL1$New_Marker <- New_Marker(APOL1, APOL1$chromosome, APOL1$position)
+
+
+
+#load in APOL1_SNPs, refine by correct p value, keep only SNP chr:positions and add "chr" before for use in phenoscanner
+APOL1_SNPs <- fread("/Users/natalie/Downloads/APOL1.9506.10.3.snp")
+APOL1_SNPs <- APOL1_SNPs[APOL1_SNPs$P <= 0.00170005,]
+APOL1_SNPs <- as.data.frame(APOL1_SNPs[,APOL1_SNPs$SNP])
+colnames(APOL1_SNPs) <- "SNP"
+
+
+#merge tables to get Betas and SEs
+APOL1 <- merge(APOL1_SNPs, APOL1, by.x = "SNP", by.y = "New_Marker")
+
+
+#merge GCA GWAS files
+setwd("/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/Haras_GWAS")
+file_list <- list.files()
+for (file in file_list){
+  # if the merged dataset doesn't exist, create it
+  if (!exists("dataset")){
+    dataset <- fread(file, sep = " ")
+  }
+  
+  # if the merged dataset does exist, append to it
+  if (exists("dataset")){
+    temp_dataset <-fread(file, sep = " ")
+    dataset<-rbind(dataset, temp_dataset)
+    rm(temp_dataset)
+  }
+}
+GCA <- dataset
+
+
+#merge GCA/SNP tables to get Betas and SEs
+GCA_SNPs <- merge(APOL1_SNPs, GCA, by.x = "SNP", by.y = "SNP")
+GCA_SNPs <- GCA_SNPs[unique(GCA_SNPs$SNP),]
+
+#merge GCA/APOL1 tables to get variables
+MRInput <- merge(APOL1, GCA, by.x = "SNP", by.y = "SNP")
+MRInput <- MRInput[unique(MRInput$SNP),]
+
+#create input to MR analyses
+MRInputObject <- data.frame(MRInput$SNP, MRInput$Beta, MRInput$StdErr, MRInput$OR, MRInput$SE) 
+colnames(MRInputObject) <- c("SNP", "exposure.beta", "exposure.se", "outcome.beta", "outcome.se")
+
+#create object
+MRInputObject <- mr_input(bx = MRInput$Beta,
+                          bxse = MRInput$StdErr,
+                          by = MRInput$OR,
+                          byse = MRInput$SE,
+                          exposure = "APOL1",
+                          outcome = "GCA Risk",
+                          snps = MRInput$SNP)
+
+
+IVWObject <- mr_ivw(MRInputObject,
+                    model = "default",
+                    robust = FALSE,
+                    penalized = FALSE,
+                    correl = FALSE,
+                    weights = "simple",
+                    psi = 0,
+                    distribution = "normal",
+                    alpha = 0.05)
+
+IVWObject
+
+
+mr_plot(MRInputObject)
+
+
+
 ##### MENDELIAN RANDOMIZATION #####
 
 library(data.table)
