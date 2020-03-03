@@ -570,6 +570,7 @@ plot(MRInputObject_1@betaX, MRInputObject_1@betaY)
 library(TwoSampleMR)
 
 ##GET RS NUMBERS (see results of phenoscanner for rs numbers) - USE FOR snp_col
+RS_numbers <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_SNPs.txt")
 ##GET ALLELE FREQUENCIES - USE FOR eaf_col
 #read in exposure (APOL1)
 read_exposure_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/Sun_APOL1.9506.10.3_ALL.txt",
