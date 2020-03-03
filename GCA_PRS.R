@@ -443,11 +443,9 @@ write.table(dataset, "/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_
 
 library(data.table)
 library(MendelianRandomization)
-
-
-#load r2 table and narrow down to SNPs 
-r2 <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/all_chr_r2.ld")
-
+library(reshape2)
+library(tseries)
+library(tidyverse)
 
 
 
@@ -471,6 +469,16 @@ colnames(APOL1_SNPs) <- "SNP"
 APOL1 <- merge(APOL1_SNPs, APOL1, by.x = "SNP", by.y = "New_Marker")
 
 
+
+#make a matrix (made in PLINK - see QC_PCA text file)
+matrix <- read.matrix("/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/APOL1_r2_matrix_V2.ld")
+#read in names for columns/rows
+matrix_names <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/APOL1_r2_matrix_V2.snplist", header = F)
+matrix_names <- as.character(as.list(matrix_names$V1))
+row.names(matrix) <- matrix_names
+colnames(matrix) <- matrix_names
+
+
 #merge GCA GWAS files
 setwd("/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/Haras_GWAS")
 file_list <- list.files()
@@ -488,25 +496,24 @@ for (file in file_list){
   }
 }
 GCA <- dataset
-
+GCA$SNP <- as.factor(GCA$SNP)
 
 #merge GCA/SNP tables to get Betas and SEs
-GCA_SNPs <- merge(APOL1_SNPs, GCA, by.x = "SNP", by.y = "SNP")
-GCA_SNPs <- GCA_SNPs[unique(GCA_SNPs$SNP),]
+GCA_SNPs <- subset(GCA, SNP %in% APOL1_SNPs$SNP)
+GCA_SNPs <- GCA_SNPs[!duplicated(GCA_SNPs$SNP), ]
+
 
 #merge GCA/APOL1 tables to get variables
 MRInput <- merge(APOL1, GCA, by.x = "SNP", by.y = "SNP")
-MRInput <- MRInput[unique(MRInput$SNP),]
+MRInput <- MRInput[!duplicated(MRInput$SNP), ]
 
-#create input to MR analyses
-MRInputObject <- data.frame(MRInput$SNP, MRInput$Beta, MRInput$StdErr, MRInput$OR, MRInput$SE) 
-colnames(MRInputObject) <- c("SNP", "exposure.beta", "exposure.se", "outcome.beta", "outcome.se")
 
 #create object
 MRInputObject <- mr_input(bx = MRInput$Beta,
                           bxse = MRInput$StdErr,
                           by = MRInput$OR,
                           byse = MRInput$SE,
+                          #correlation = matrix,
                           exposure = "APOL1",
                           outcome = "GCA Risk",
                           snps = MRInput$SNP)
@@ -521,27 +528,65 @@ IVWObject <- mr_ivw(MRInputObject,
                     psi = 0,
                     distribution = "normal",
                     alpha = 0.05)
-
 IVWObject
+
+
+
 
 
 mr_plot(MRInputObject)
 
 
 
-##### MENDELIAN RANDOMIZATION #####
+##### MENDELIAN RANDOMIZATION DRAFT STUFF #####
 
-library(data.table)
-library(MendelianRandomization)
-
-SNPs <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_SNPs.txt")
-SNPs <- unique(SNPs$rsid)
-
-phenoscanner()
-
+#look at SNPs in plot
+lm.out = lm(MRInputObject@betaY ~ MRInputObject@betaX -1, weights = 1/MRInputObject@betaYse^2)
+summary(lm.out)
+plot(MRInputObject@betaX, MRInputObject@betaY)
   
   
-  
-  
+#try with lower thresholds (5.005e-05)
+MRInput_1 <- MRInput[MRInput$P.x <= 0.00105005,]
+MRInputObject_1 <- mr_input(bx = MRInput_1$Beta,
+                          bxse = MRInput_1$StdErr,
+                          by = MRInput_1$OR,
+                          byse = MRInput_1$SE,
+                          #correlation = matrix,
+                          exposure = "APOL1",
+                          outcome = "GCA Risk",
+                          snps = MRInput_1$SNP)
+mr_ivw(MRInputObject_1)
+mr_plot(MRInputObject_1)
+lm.out = lm(MRInputObject_1@betaY ~ MRInputObject_1@betaX -1, weights = 1/MRInputObject_1@betaYse^2)
+summary(lm.out)
+plot(MRInputObject_1@betaX, MRInputObject_1@betaY)
+
+
+
+
+###### Two Sample MR #####
+
+library(TwoSampleMR)
+
+##GET RS NUMBERS (see results of phenoscanner for rs numbers) - USE FOR snp_col
+##GET ALLELE FREQUENCIES - USE FOR eaf_col
+#read in exposure (APOL1)
+read_exposure_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/Sun_APOL1.9506.10.3_ALL.txt",
+                   snp_col = "SNP",
+                   beta_col = "Beta",
+                   se_col = "StdErr",
+                   effect_allele_col = "Allele1",
+                   other_allele_col = "Allele2",
+                   pval_col = "P")
+
+
+#DO THE SAME FOR OUTCOME (GCA)
+#MAKE SURE YOU HARMONIZE EFFECT AND OTHER ALLELES (https://rdrr.io/github/MRCIEU/TwoSampleMR/man/harmonise_data.html)
+
+
+
+
+
   
   
