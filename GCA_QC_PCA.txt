@@ -112,7 +112,7 @@ Step a) QC - DO LATER
 
 Step b) GWAS - PLINK
 
-/Volumes/Natalies_HD/PhD/Tools_Software/plink --dosage /Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/Haras_GWAS/PRE-GWAS/chr22_qc.plink.dosage.gz format=1 case-control-freqs --fam /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/chr22.fam --allow-no-sex --logistic --pheno /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/allccIDs.txt --covar /Volumes/Natalies_HD/PhD/GCA_PRS/Results/PCA/EIGENVAR/PCA_RR_for_eigenvar.eigenvec --out /Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/My_GWAS/chr22 --double-id
+/Volumes/Natalies_HD/PhD/Tools_Software/plink --dosage /Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/Haras_GWAS/PRE-GWAS/chr20_qc.plink.dosage.gz format=1 case-control-freqs --fam /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/chr20.fam --allow-no-sex --logistic --pheno /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/allccIDs.txt --covar /Volumes/Natalies_HD/PhD/GCA_PRS/Results/PCA/EIGENVAR/PCA_RR_for_eigenvar.eigenvec --out /Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/My_GWAS/chr20 --double-id
 
 
 

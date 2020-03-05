@@ -565,29 +565,191 @@ plot(MRInputObject_1@betaX, MRInputObject_1@betaY)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 ###### Two Sample MR #####
 
+library(data.table)
 library(TwoSampleMR)
+library(stringr)
+library(dplyr)
 
-##GET RS NUMBERS (see results of phenoscanner for rs numbers) - USE FOR snp_col
+
+#load APOL1, create new marker column and rename columns
+APOL1 <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/Sun_APOL1.9506.10.3_ALL.txt")
+New_Marker <- function(tablename, chromosome, location) {
+  tablename$New_Marker <- paste(chromosome, location, sep = ":")
+}
+APOL1$New_Marker <- New_Marker(APOL1, APOL1$chromosome, APOL1$position)
+colnames(APOL1) <- c("Variant_ID", "chromosome", "position", "APOL1_Allele1", "APOL1_Allele2", "APOL1_Beta", "APOL1_SE", "APOL1_logP", "APOL1_P", "New_Marker")
+
+
+
+#load in APOL1_SNPs, refine by correct p value, keep only SNP chr:positions and add "chr" before for use in phenoscanner
+APOL1_SNPs <- fread("/Users/natalie/Downloads/APOL1.9506.10.3.snp")
+APOL1_SNPs <- APOL1_SNPs[APOL1_SNPs$P <= 0.00170005,]
+APOL1_SNPs <- as.data.frame(APOL1_SNPs[,APOL1_SNPs$SNP])
+colnames(APOL1_SNPs) <- "SNP"
+APOL1_SNPs$SNP <- as.character(APOL1_SNPs$SNP)
+
+
+#merge target SNP table and APOL1 table to get Betas and SEs
+APOL1 <- merge(APOL1_SNPs, APOL1, by.x = "SNP", by.y = "New_Marker")
+
+
+##Read in RS numbers
 RS_numbers <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_SNPs.txt")
-##GET ALLELE FREQUENCIES - USE FOR eaf_col
+RS_numbers$snp <- gsub("chr", RS_numbers$snp, replacement = "")
+
+
+#merge tables together by SNP (chr:position) IF // APOL1_Allele1 matches a1 OR a2 // AND // APOL1_Allele2 matches a1 OR a2 //
+
+#THE FOLLOWING STEPS HAVE NOW BEEN CONDUCTED BUT SHOULD STAY IN THE CODE
+#APOL1_new <- merge(APOL1, RS_numbers, by.x = "SNP", by.y = "snp")
+#APOL1_new2 <- APOL1_new[!duplicated(APOL1_new$SNP), ] 
+#why am i missing some snps and which ones are they?
+#APOL1_new_notpresent <- subset(APOL1, !(SNP %in% APOL1_new2$SNP))
+#these SNPs weren't present in phenoscanner, so find them in ensembl VEP (biomart)
+
+#variant effect predictor (http://grch37.ensembl.org/Homo_sapiens/Tools/VEP) - see VEP_input.txt in Scripts folder for input (had to flip the alleles in input because effect allele is allele 1 in here - but the second allele in the VEP)
+#process VEP_output file and add to RS_numbers
+VEP_output <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/VEP/VEP_output_PROPER.txt")
+VEP_output <- VEP_output[VEP_output$Existing_variation != "-"] #remove any without RS numbers
+VEP_output <- VEP_output[!duplicated(VEP_output$Location), ] #remove duplicates
+VEP_output[,4:19] <- NULL #remove irrelevant columns
+VEP_output[,5:14] <- NULL
+VEP_output[,11:18] <- NULL
+VEP_output[,5] <- NULL
+VEP_output$Location <- sub("-.*", "", VEP_output$Location) #make chr:position
+colnames(VEP_output) <- c("Name", "snp", "a1", "rsid", "afr", "amr", "eas", "eur", "sas") #make names clearer
+VEP_output <- VEP_output %>% dplyr::mutate(Allele2 = str_extract(Name, "[^_]+$")) #extract allele2 info
+VEP_output$a2 <- sub("/.*", "", VEP_output$Allele2) #perfect allele2 info
+VEP_output$Name <- NULL
+VEP_output$Allele2 <- NULL
+RS_numbers <- rbind(RS_numbers, VEP_output, fill = T)
+
+
+########### NOTE THAT 5 SNPs ARE STILL MISSING !!!!!!
+
+#but continue without missing snps for now
+APOL1 <- merge(APOL1, RS_numbers, by.x = "SNP", by.y = "snp")
+APOL1 <- APOL1[!duplicated(APOL1$SNP), ] 
+
+#check that APOL1_Allele1 is the same as a1 or a2 
+APOL1$APOL1_Allele1 = toupper(APOL1$APOL1_Allele1) #make sure the cases are the same
+APOL1$APOL1_Allele2 = toupper(APOL1$APOL1_Allele2)
+APOL1$a1 = toupper(APOL1$a1)
+APOL1$a2 = toupper(APOL1$a2) 
+match <- APOL1[APOL1$APOL1_Allele1 == APOL1$a1 | APOL1$APOL1_Allele1 == APOL1$a2,] #check which ones are the same
+nonmatch <- subset(APOL1, !(SNP %in% match$SNP)) #check which arent
+APOL1$a1 <- str_sub(APOL1$a1, - 1) #when inspecting the data, the non-matching ones just had a string of SNPs prior to the actual SNP, so this was removed
+APOL1$a2 <- str_sub(APOL1$a2, - 1)
+#check for second allele too
+match1 <- APOL1[APOL1$APOL1_Allele2 == APOL1$a1 | APOL1$APOL1_Allele2 == APOL1$a2,] #checked for the second allele too
+
+
+
+
+
+#add GCA data to table
+
+#merge GCA GWAS files
+setwd("/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/Haras_GWAS")
+file_list <- list.files()
+for (file in file_list){
+  # if the merged dataset doesn't exist, create it
+  if (!exists("dataset")){
+    dataset <- fread(file, sep = " ")
+  }
+  
+  # if the merged dataset does exist, append to it
+  if (exists("dataset")){
+    temp_dataset <-fread(file, sep = " ")
+    dataset<-rbind(dataset, temp_dataset)
+    rm(temp_dataset)
+  }
+}
+GCA <- dataset
+#merge GCA/SNP tables to get Betas and SEs
+GCA <- subset(GCA, SNP %in% APOL1_SNPs$SNP)
+GCA <- GCA[!duplicated(GCA$SNP), ]
+#rename GCA table columns
+colnames(GCA) <- c("SNP", "GCA_A1", "GCA_A2", "GCA_freq_A", "GCA_freq_U", "GCA_INFO", "GCA_OR", "GCA_SE", "GCA_P")
+
+
+#merge APOL1 and GCA tables
+MRInput <- merge(APOL1, GCA, by.x = "SNP", by.y = "SNP")
+MRInput <- MRInput[!duplicated(MRInput$SNP), ]
+
+
+
+#DO I NEED TO CONVERT ORs TO BETAs FOR HARMONISATION???
+MRInput$GCA_Beta <- log(MRInput$GCA_OR)
+
+
+
+
+#check whether GCA_A1/A2 and a1/a2 alleles match, then adjust accordingly
+
+write.table(MRInput, "/Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/MRInput.txt", row.names = F, quote = F)
+
+
+
+
 #read in exposure (APOL1)
-read_exposure_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/Sun_APOL1.9506.10.3_ALL.txt",
-                   snp_col = "SNP",
-                   beta_col = "Beta",
-                   se_col = "StdErr",
-                   effect_allele_col = "Allele1",
-                   other_allele_col = "Allele2",
-                   pval_col = "P")
+exposure <- read_exposure_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/MRInput.txt",
+                   snp_col = "rsid",
+                   beta_col = "APOL1_Beta",
+                   se_col = "APOL1_SE",
+                   effect_allele_col = "APOL1_Allele1",
+                   other_allele_col = "APOL1_Allele2",
+                   pval_col = "APOL1_P")
+
+exposure$exposure <- "APOL1"
 
 
 #DO THE SAME FOR OUTCOME (GCA)
+
+outcome <- read_outcome_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/MRInput.txt",
+                               snp_col = "rsid",
+                               beta_col = "GCA_Beta",
+                               se_col = "GCA_SE",
+                               effect_allele_col = "GCA_A1",
+                               other_allele_col = "GCA_A2",
+                               pval_col = "GCA_P",
+                             eaf_col = "GCA_freq_A")
+
+outcome$outcome <- "GCA"
+
 #MAKE SURE YOU HARMONIZE EFFECT AND OTHER ALLELES (https://rdrr.io/github/MRCIEU/TwoSampleMR/man/harmonise_data.html)
 
+harmonised <- harmonise_data(exposure, outcome, action = 2)
+
+
+#MR tests
+
+res_mr <- mr(harmonised)
+res_heterogeneity <- mr_heterogeneity(harmonised)
+res_pleiotropy <- mr_pleiotropy_test(harmonised)
+res_single <- mr_singlesnp(harmonised)
 
 
 
+#Scatter plot
+p1 <- mr_scatter_plot(res_mr, harmonised)
+p1[[1]]
 
-  
-  
+#forest plot
+p2 <- mr_forest_plot(res_single)
+p2[[1]]  
+
