@@ -116,6 +116,9 @@ Step b) GWAS - PLINK
 
 
 
+step c) GWAS (logistic beta)
+
+/Volumes/Natalies_HD/PhD/Tools_Software/plink --bfile /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/all_chr --allow-no-sex --logistic beta --ci 0.95 --pheno /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/allccIDs.txt --covar /Volumes/Natalies_HD/PhD/GCA_PRS/Results/PCA/EIGENVAR/PCA_RR_for_eigenvar.eigenvec --out /Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/My_GWAS/all_beta --double-id
 
 
 

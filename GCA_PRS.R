@@ -439,7 +439,7 @@ write.table(dataset, "/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_
 
 
 
-##### MR PREP ######
+##### MR BURGESS PACKAGE ######
 
 library(data.table)
 library(MendelianRandomization)
@@ -507,12 +507,39 @@ GCA_SNPs <- GCA_SNPs[!duplicated(GCA_SNPs$SNP), ]
 MRInput <- merge(APOL1, GCA, by.x = "SNP", by.y = "SNP")
 MRInput <- MRInput[!duplicated(MRInput$SNP), ]
 
+#Get betas
+MRInput$GCA_Beta <- log(MRInput$OR)
+colnames(MRInput) <- c("SNP", "Variant_ID", "chromosome", "position", "APOL1_A1", "APOL1_A2", "APOL1_Beta", "APOL1_SE", "APOL1_logP", "APOL1_P", "GCA_A1", "GCA_A2", "GCA_FRQA", "GCA_FRQU", "GCA_INFO", "GCA_OR", "GCA_SE", "GCA_P", "GCA_Beta")
+
+
+#make them all upper case
+MRInput$APOL1_A1 <- toupper(MRInput$APOL1_A1)
+MRInput$APOL1_A2 <- toupper(MRInput$APOL1_A2)
+MRInput$GCA_A1<- toupper(MRInput$GCA_A1)
+MRInput$GCA_A2 <- toupper(MRInput$GCA_A2)
+
+#harmonise by hand
+match <- MRInput[MRInput$APOL1_A1 == MRInput$GCA_A1,] #check which ones are the same
+nonmatch <- subset(MRInput, !(SNP %in% match$SNP)) #check which arent
+nonmatch$GCA_Allele1 <- nonmatch$GCA_A2
+nonmatch$GCA_Allele2 <- nonmatch$GCA_A1
+nonmatch$GCA_A1 <- nonmatch$GCA_Allele1
+nonmatch$GCA_A2 <- nonmatch$GCA_Allele2
+nonmatch$GCA_Allele1 <- NULL
+nonmatch$GCA_Allele2 <- NULL
+nonmatch$GCA_Beta <- nonmatch$GCA_Beta * -1
+MRInput <- rbind(match, nonmatch)
+
+
+
+
+
 
 #create object
-MRInputObject <- mr_input(bx = MRInput$Beta,
-                          bxse = MRInput$StdErr,
-                          by = MRInput$OR,
-                          byse = MRInput$SE,
+MRInputObject <- mr_input(bx = MRInput$APOL1_Beta,
+                          bxse = MRInput$APOL1_SE,
+                          by = MRInput$GCA_Beta,
+                          byse = MRInput$GCA_SE,
                           #correlation = matrix,
                           exposure = "APOL1",
                           outcome = "GCA Risk",
@@ -538,46 +565,7 @@ mr_plot(MRInputObject)
 
 
 
-##### MENDELIAN RANDOMIZATION DRAFT STUFF #####
-
-#look at SNPs in plot
-lm.out = lm(MRInputObject@betaY ~ MRInputObject@betaX -1, weights = 1/MRInputObject@betaYse^2)
-summary(lm.out)
-plot(MRInputObject@betaX, MRInputObject@betaY)
-  
-  
-#try with lower thresholds (5.005e-05)
-MRInput_1 <- MRInput[MRInput$P.x <= 0.00105005,]
-MRInputObject_1 <- mr_input(bx = MRInput_1$Beta,
-                          bxse = MRInput_1$StdErr,
-                          by = MRInput_1$OR,
-                          byse = MRInput_1$SE,
-                          #correlation = matrix,
-                          exposure = "APOL1",
-                          outcome = "GCA Risk",
-                          snps = MRInput_1$SNP)
-mr_ivw(MRInputObject_1)
-mr_plot(MRInputObject_1)
-lm.out = lm(MRInputObject_1@betaY ~ MRInputObject_1@betaX -1, weights = 1/MRInputObject_1@betaYse^2)
-summary(lm.out)
-plot(MRInputObject_1@betaX, MRInputObject_1@betaY)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-###### Two Sample MR #####
+##### Two Sample MR #####
 
 library(data.table)
 library(TwoSampleMR)
@@ -645,6 +633,8 @@ RS_numbers <- rbind(RS_numbers, VEP_output, fill = T)
 APOL1 <- merge(APOL1, RS_numbers, by.x = "SNP", by.y = "snp")
 APOL1 <- APOL1[!duplicated(APOL1$SNP), ] 
 
+
+#CHECK FOR STRAND ERRORS
 #check that APOL1_Allele1 is the same as a1 or a2 
 APOL1$APOL1_Allele1 = toupper(APOL1$APOL1_Allele1) #make sure the cases are the same
 APOL1$APOL1_Allele2 = toupper(APOL1$APOL1_Allele2)
@@ -734,6 +724,7 @@ outcome$outcome <- "GCA"
 #MAKE SURE YOU HARMONIZE EFFECT AND OTHER ALLELES (https://rdrr.io/github/MRCIEU/TwoSampleMR/man/harmonise_data.html)
 
 harmonised <- harmonise_data(exposure, outcome, action = 2)
+#harmonised$se.outcome <- log(harmonised$se.outcome) #log transform the SE
 
 
 #MR tests
@@ -753,3 +744,316 @@ p1[[1]]
 p2 <- mr_forest_plot(res_single)
 p2[[1]]  
 
+
+
+
+
+##### (DEP) attempt 2 MR package #####
+
+library(MendelianRandomization)
+library(reshape2)
+library(tseries)
+library(tidyverse)
+
+
+#get chr:pos for MR package
+MRInput <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/MRInput.txt", select = c("SNP", "rsid"))
+harmonised <- merge(MRInput, harmonised, by.x = "rsid", by.y = "SNP")
+
+
+
+#make a matrix (made in PLINK - see QC_PCA text file)
+matrix <- read.matrix("/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/APOL1_r2_matrix_V2.ld")
+#read in names for columns/rows
+matrix_names <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/APOL1_r2_matrix_V2.snplist", header = F)
+matrix_names <- as.character(as.list(matrix_names$V1))
+row.names(matrix) <- matrix_names
+colnames(matrix) <- matrix_names
+
+
+harmonised$logSE.outcome <- log(harmonised$se.outcome)
+
+
+#make MR input object
+MRInputObject <- mr_input(bx = harmonised$beta.exposure,
+                          bxse = harmonised$se.exposure,
+                          by = harmonised$beta.outcome,
+                          byse = harmonised$logSE.outcome,
+                          correlation = matrix,
+                          exposure = "APOL1",
+                          outcome = "GCA Risk",
+                          snps = harmonised$SNP)
+
+
+
+IVWObject <- mr_ivw(MRInputObject,
+                    model = "default",
+                    robust = FALSE,
+                    penalized = FALSE,
+                    correl = FALSE,
+                    weights = "simple",
+                    psi = 0,
+                    distribution = "normal",
+                    alpha = 0.05)
+IVWObject
+
+
+
+
+
+mr_plot(MRInputObject)
+
+
+
+
+
+
+
+
+
+##### (DEP) MR with just significant #####
+
+library(data.table)
+library(TwoSampleMR)
+library(stringr)
+library(dplyr)
+
+
+
+#load APOL1, create new marker column and rename columns
+APOL1 <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/Sun_APOL1.9506.10.3_ALL.txt")
+New_Marker <- function(tablename, chromosome, location) {
+  tablename$New_Marker <- paste(chromosome, location, sep = ":")
+}
+APOL1$New_Marker <- New_Marker(APOL1, APOL1$chromosome, APOL1$position)
+colnames(APOL1) <- c("Variant_ID", "chromosome", "position", "APOL1_Allele1", "APOL1_Allele2", "APOL1_Beta", "APOL1_SE", "APOL1_logP", "APOL1_P", "New_Marker")
+
+
+
+#load in APOL1_SNPs, refine by correct p value, keep only SNP chr:positions and add "chr" before for use in phenoscanner
+APOL1_SNPs <- fread("/Users/natalie/Downloads/APOL1.9506.10.3.snp")
+APOL1_SNPs <- APOL1_SNPs[APOL1_SNPs$P <= 5e-05,]
+APOL1_SNPs <- as.data.frame(APOL1_SNPs[,APOL1_SNPs$SNP])
+colnames(APOL1_SNPs) <- "SNP"
+APOL1_SNPs$SNP <- as.character(APOL1_SNPs$SNP)
+
+
+#merge target SNP table and APOL1 table to get Betas and SEs
+APOL1 <- merge(APOL1_SNPs, APOL1, by.x = "SNP", by.y = "New_Marker")
+
+
+##Read in RS numbers
+RS_numbers <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_SNPs.txt")
+RS_numbers$snp <- gsub("chr", RS_numbers$snp, replacement = "")
+APOL1 <- merge(APOL1, RS_numbers, by.x = "SNP", by.y = "snp")
+APOL1 <- APOL1[!duplicated(APOL1$SNP), ] 
+
+
+
+#load in GCA results
+GCA <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/My_GWAS/all_beta.assoc.logistic")
+colnames(GCA) <- c("chromosome", "SNP", "BP", "GCA_Allele1", "Test", "NMISS", "GCA_Beta", "GCA_SE", "L95", "U95", "STAT", "GCA_P")
+
+#merge GCA/SNP tables to get Betas and SEs
+GCA <- subset(GCA, SNP %in% APOL1_SNPs$SNP)
+GCA <- GCA[!duplicated(GCA$SNP), ]
+
+
+#merge APOL1 and GCA tables
+MRInput <- merge(APOL1, GCA, by.x = "SNP", by.y = "SNP")
+MRInput <- MRInput[!duplicated(MRInput$SNP), ]
+
+#input GCA allele 2
+MRInput <- arrange(MRInput, desc(SNP))
+#MRInput$GCA_Allele2 <- c("a", "g", "t", "t", "g", "g", "g", "c", "c", "g", "c")
+
+
+#make them all upper case
+MRInput$APOL1_Allele1 <- toupper(MRInput$APOL1_Allele1)
+MRInput$APOL1_Allele2 <- toupper(MRInput$APOL1_Allele2)
+MRInput$GCA_Allele1<- toupper(MRInput$GCA_Allele1)
+MRInput$GCA_Allele2 <- toupper(MRInput$GCA_Allele2)
+
+
+
+
+#harmonise by hand
+match <- MRInput[MRInput$APOL1_Allele1 == MRInput$GCA_Allele1,] #check which ones are the same
+nonmatch <- subset(MRInput, !(SNP %in% match$SNP)) #check which arent
+nonmatch$GCA_A1 <- nonmatch$GCA_Allele2
+nonmatch$GCA_A2 <- nonmatch$GCA_Allele1
+nonmatch$GCA_Allele1 <- nonmatch$GCA_A1
+nonmatch$GCA_Allele2 <- nonmatch$GCA_A2
+nonmatch$GCA_A1 <- NULL
+nonmatch$GCA_A2 <- NULL
+nonmatch$GCA_Beta <- nonmatch$GCA_Beta * -1
+MRInput <- rbind(match, nonmatch)
+
+
+
+
+
+write.table(MRInput, "/Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/MRInput_5e5.txt", row.names = F, quote = F)
+
+
+
+#read in exposure (APOL1)
+exposure <- read_exposure_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/MRInput_5e5.txt",
+                               snp_col = "rsid",
+                               beta_col = "APOL1_Beta",
+                               se_col = "APOL1_SE",
+                               effect_allele_col = "APOL1_Allele1",
+                               other_allele_col = "APOL1_Allele2",
+                               pval_col = "APOL1_P")
+
+exposure$exposure <- "APOL1"
+
+
+#DO THE SAME FOR OUTCOME (GCA)
+
+outcome <- read_outcome_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/MRInput_5e5.txt",
+                             snp_col = "rsid",
+                             beta_col = "GCA_Beta",
+                             se_col = "GCA_SE",
+                             effect_allele_col = "GCA_Allele1",
+                             other_allele_col = "GCA_Allele2",
+                             pval_col = "GCA_P")
+
+outcome$outcome <- "GCA"
+
+#MAKE SURE YOU HARMONIZE EFFECT AND OTHER ALLELES (https://rdrr.io/github/MRCIEU/TwoSampleMR/man/harmonise_data.html)
+harmonised <- harmonise_data(exposure, outcome, action = 1)
+
+
+
+
+res_mr <- mr(harmonised)
+
+
+
+
+
+
+##### MR with borderline significant #####
+
+library(data.table)
+library(MendelianRandomization)
+library(reshape2)
+library(tseries)
+library(tidyverse)
+
+
+
+#load APOL1 and create new marker column
+APOL1 <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/Sun_APOL1.9506.10.3_ALL.txt")
+New_Marker <- function(tablename, chromosome, location) {
+  tablename$New_Marker <- paste(chromosome, location, sep = ":")
+}
+APOL1$New_Marker <- New_Marker(APOL1, APOL1$chromosome, APOL1$position)
+
+
+
+#load in APOL1_SNPs, refine by correct p value, keep only SNP chr:positions and add "chr" before for use in phenoscanner
+APOL1_SNPs <- fread("/Users/natalie/Downloads/APOL1.9506.10.3.snp")
+APOL1_SNPs <- APOL1_SNPs[APOL1_SNPs$P <= 5e-05,]
+APOL1_SNPs <- as.data.frame(APOL1_SNPs[,APOL1_SNPs$SNP])
+colnames(APOL1_SNPs) <- "SNP"
+
+
+#merge tables to get Betas and SEs
+APOL1 <- merge(APOL1_SNPs, APOL1, by.x = "SNP", by.y = "New_Marker")
+
+
+
+#make a matrix (made in PLINK - see QC_PCA text file)
+#matrix <- read.matrix("/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/APOL1_r2_matrix_V2.ld")
+#read in names for columns/rows
+#matrix_names <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/APOL1_r2_matrix_V2.snplist", header = F)
+#matrix_names <- as.character(as.list(matrix_names$V1))
+#row.names(matrix) <- matrix_names
+#colnames(matrix) <- matrix_names
+
+
+#merge GCA GWAS files
+setwd("/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/Haras_GWAS")
+file_list <- list.files()
+for (file in file_list){
+  # if the merged dataset doesn't exist, create it
+  if (!exists("dataset")){
+    dataset <- fread(file, sep = " ")
+  }
+  
+  # if the merged dataset does exist, append to it
+  if (exists("dataset")){
+    temp_dataset <-fread(file, sep = " ")
+    dataset<-rbind(dataset, temp_dataset)
+    rm(temp_dataset)
+  }
+}
+GCA <- dataset
+GCA$SNP <- as.factor(GCA$SNP)
+
+#merge GCA/SNP tables to get Betas and SEs
+GCA_SNPs <- subset(GCA, SNP %in% APOL1_SNPs$SNP)
+GCA_SNPs <- GCA_SNPs[!duplicated(GCA_SNPs$SNP), ]
+
+
+#merge GCA/APOL1 tables to get variables
+MRInput <- merge(APOL1, GCA, by.x = "SNP", by.y = "SNP")
+MRInput <- MRInput[!duplicated(MRInput$SNP), ]
+
+#Get betas
+MRInput$GCA_Beta <- log(MRInput$OR)
+colnames(MRInput) <- c("SNP", "Variant_ID", "chromosome", "position", "APOL1_A1", "APOL1_A2", "APOL1_Beta", "APOL1_SE", "APOL1_logP", "APOL1_P", "GCA_A1", "GCA_A2", "GCA_FRQA", "GCA_FRQU", "GCA_INFO", "GCA_OR", "GCA_SE", "GCA_P", "GCA_Beta")
+
+
+#make them all upper case
+MRInput$APOL1_A1 <- toupper(MRInput$APOL1_A1)
+MRInput$APOL1_A2 <- toupper(MRInput$APOL1_A2)
+MRInput$GCA_A1<- toupper(MRInput$GCA_A1)
+MRInput$GCA_A2 <- toupper(MRInput$GCA_A2)
+
+#harmonise by hand
+match <- MRInput[MRInput$APOL1_A1 == MRInput$GCA_A1,] #check which ones are the same
+nonmatch <- subset(MRInput, !(SNP %in% match$SNP)) #check which arent
+nonmatch$GCA_Allele1 <- nonmatch$GCA_A2
+nonmatch$GCA_Allele2 <- nonmatch$GCA_A1
+nonmatch$GCA_A1 <- nonmatch$GCA_Allele1
+nonmatch$GCA_A2 <- nonmatch$GCA_Allele2
+nonmatch$GCA_Allele1 <- NULL
+nonmatch$GCA_Allele2 <- NULL
+nonmatch$GCA_Beta <- nonmatch$GCA_Beta * -1
+MRInput <- rbind(match, nonmatch)
+
+
+
+
+
+
+#create object
+MRInputObject <- mr_input(bx = MRInput$APOL1_Beta,
+                          bxse = MRInput$APOL1_SE,
+                          by = MRInput$GCA_Beta,
+                          byse = MRInput$GCA_SE,
+                          #correlation = matrix,
+                          exposure = "APOL1",
+                          outcome = "GCA Risk",
+                          snps = MRInput$SNP)
+
+
+IVWObject <- mr_ivw(MRInputObject,
+                    model = "default",
+                    robust = FALSE,
+                    penalized = FALSE,
+                    correl = FALSE,
+                    weights = "simple",
+                    psi = 0,
+                    distribution = "normal",
+                    alpha = 0.05)
+IVWObject
+
+
+
+
+
+mr_plot(MRInputObject)
