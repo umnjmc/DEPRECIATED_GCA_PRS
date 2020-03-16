@@ -384,10 +384,11 @@ p
 
 
 
-##### PHENOSCANNER - APOL1 #####
+##### PHENOSCANNER - APOL1 (AND MR PREP) #####
 
 library(devtools)
 library(phenoscanner)
+library(data.table)
 
 
 #load in APOL1_SNPs, refine by correct p value, keep only SNP chr:positions and add "chr" before for use in phenoscanner
@@ -438,8 +439,99 @@ for (file in file_list){
 write.table(dataset, "/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_pQTL.txt", quote = F, sep = "\t", row.names = F)
 
 
+#identify snps with p value < 5 x 10-8 with other traits
+APOL1_GWAS <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_GWAS.txt")
+APOL1_GWAS <- APOL1_GWAS[APOL1_GWAS$p < 5e-08,]
 
-##### MR BURGESS PACKAGE ######
+
+#identify snps with p value < 5e-8 with competing risk factor traits
+#APOL1_GWAS <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_snp_remove_5e-8.txt")
+
+
+Traits <- APOL1_GWAS[!duplicated(APOL1_GWAS$trait),]
+APOL1_GWAS <- APOL1_GWAS[!grep("height", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("gene", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("dise", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("protein levels", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("dea", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("sco", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("scatter", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("all", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("home", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("imp", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("imm", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("rate", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("hair", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("meas", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("fee", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("fere", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("tre", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("ratio ", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("mass", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("fat", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("wi", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("bo", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("we", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("for", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("sn", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("sel", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("hip", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("leg", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("art", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("dis", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("by", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("myo", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("sod", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("pul", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("myelom", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("lev", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("red", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("High", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("hd", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("sum", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("ret", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("lym", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("mon", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("mon", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("hem", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("dias", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("corp", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("low", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("chol", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("tri", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("sys", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("scle", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("iga", APOL1_GWAS$trait, ignore.case = T),]
+APOL1_GWAS <- APOL1_GWAS[!grep("tran", APOL1_GWAS$trait, ignore.case = T),]
+
+
+APOL1_GWAS <- APOL1_GWAS[!duplicated(APOL1_GWAS$rsid),]
+
+
+write.table(APOL1_GWAS, "/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_snp_remove_5e-8.txt", quote = F, sep = "\t", row.names = F)
+APOL1_GWAS <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_snp_remove_5e-8.txt")
+APOL1_GWAS <- APOL1_GWAS$snp
+APOL1_GWAS <- as.data.frame(APOL1_GWAS)
+APOL1_GWAS <- APOL1_GWAS[!duplicated(APOL1_GWAS$APOL1_GWAS),]
+APOL1_GWAS <- as.data.frame(APOL1_GWAS)
+APOL1_GWAS <- gsub("chr", "", APOL1_GWAS$APOL1_GWAS)
+APOL1_GWAS <- as.data.frame(APOL1_GWAS)
+write.table(APOL1_GWAS, "/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_snp_remove_5e-8_SNP_LIST.txt", quote = F, sep = "\t", row.names = F)
+
+
+
+#then do the same for pQTLs
+APOL1_GWAS <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_pQTL.txt")
+APOL1_GWAS <- APOL1_GWAS[APOL1_GWAS$p < 5e-08,]
+Traits <- APOL1_GWAS[!duplicated(APOL1_GWAS$trait),]
+#searched for proteins in https://www.ebi.ac.uk/gwas/efotraits/EFO_1001209
+#none matched the pQTL associations I have from phenoscanner
+
+
+
+
+
+##### MR BURGESS PACKAGE - MAKE MR INPUT ######
 
 library(data.table)
 library(MendelianRandomization)
@@ -459,7 +551,7 @@ APOL1$New_Marker <- New_Marker(APOL1, APOL1$chromosome, APOL1$position)
 
 
 #load in APOL1_SNPs, refine by correct p value, keep only SNP chr:positions and add "chr" before for use in phenoscanner
-APOL1_SNPs <- fread("/Users/natalie/Downloads/APOL1.9506.10.3.snp")
+APOL1_SNPs <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/PRSice/APOL1.9506.10.3/APOL1.9506.10.3.snp")
 APOL1_SNPs <- APOL1_SNPs[APOL1_SNPs$P <= 0.00170005,]
 APOL1_SNPs <- as.data.frame(APOL1_SNPs[,APOL1_SNPs$SNP])
 colnames(APOL1_SNPs) <- "SNP"
@@ -471,12 +563,12 @@ APOL1 <- merge(APOL1_SNPs, APOL1, by.x = "SNP", by.y = "New_Marker")
 
 
 #make a matrix (made in PLINK - see QC_PCA text file)
-matrix <- read.matrix("/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/APOL1_r2_matrix_V2.ld")
+#matrix <- read.matrix("/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/APOL1_r2_matrix_V2.ld")
 #read in names for columns/rows
-matrix_names <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/APOL1_r2_matrix_V2.snplist", header = F)
-matrix_names <- as.character(as.list(matrix_names$V1))
-row.names(matrix) <- matrix_names
-colnames(matrix) <- matrix_names
+#matrix_names <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/APOL1_r2_matrix_V2.snplist", header = F)
+#matrix_names <- as.character(as.list(matrix_names$V1))
+#row.names(matrix) <- matrix_names
+#colnames(matrix) <- matrix_names
 
 
 #merge GCA GWAS files
@@ -531,8 +623,54 @@ nonmatch$GCA_Beta <- nonmatch$GCA_Beta * -1
 MRInput <- rbind(match, nonmatch)
 
 
+write.table(MRInput, "/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_nofilter.txt", quote = F, row.names = F, sep = "\t")
 
 
+#Filter for "liberal" score (just remove polygenic SNPs)
+
+Remove_poly_SNPs <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_snp_remove_5e-8_SNP_LIST.txt")
+MRInput <- subset(MRInput, !(SNP %in% Remove_poly_SNPs$APOL1_GWAS))
+
+write.table(MRInput, "/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_liberal.txt", quote = F, row.names = F, sep = "\t")
+
+
+#Continue to filter for "conservative" score (keep polygenic SNPs gone and keep only cis variants, at least p < 10-5 )
+
+MRInput <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_liberal.txt")
+
+New <- MRInput$chromosome
+New <- as.data.frame(New) 
+New$position <- MRInput$position
+New$position1 <- MRInput$position
+New$A1 <- MRInput$APOL1_A1
+New$A2 <- MRInput$APOL1_A2
+New$n <- 1
+New$A1 <- paste0(New$A1, "/")
+New$A1 <- paste0(New$A1, New$A2)
+New$A2 <- NULL
+New <- New[order( New$New, New$position),]
+
+write.table(New, "/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/VEP_input.txt", quote = F, row.names = F, col.names = F, sep = " ")
+VEP_out <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/VEP_output.txt")
+#but no APOL1 cis variants
+
+MRInput <- MRInput[MRInput$APOL1_P <= 5e-5,]
+write.table(MRInput, "/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_conservative.txt", quote = F, row.names = F, sep = "\t")
+
+
+##### MR BURGESS PACKAGE - CONDUCT MR ######
+
+library(data.table)
+library(MendelianRandomization)
+library(reshape2)
+library(tseries)
+library(tidyverse)
+
+#liberal
+MRInput <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_liberal.txt")
+
+#conservative
+MRInput <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_conservative.txt")
 
 
 #create object
@@ -556,8 +694,6 @@ IVWObject <- mr_ivw(MRInputObject,
                     distribution = "normal",
                     alpha = 0.05)
 IVWObject
-
-
 
 
 
@@ -585,7 +721,7 @@ colnames(APOL1) <- c("Variant_ID", "chromosome", "position", "APOL1_Allele1", "A
 
 #load in APOL1_SNPs, refine by correct p value, keep only SNP chr:positions and add "chr" before for use in phenoscanner
 APOL1_SNPs <- fread("/Users/natalie/Downloads/APOL1.9506.10.3.snp")
-APOL1_SNPs <- APOL1_SNPs[APOL1_SNPs$P <= 0.00170005,]
+APOL1_SNPs <- APOL1_SNPs[APOL1_SNPs$P <= 5e-05,] #0.00170005
 APOL1_SNPs <- as.data.frame(APOL1_SNPs[,APOL1_SNPs$SNP])
 colnames(APOL1_SNPs) <- "SNP"
 APOL1_SNPs$SNP <- as.character(APOL1_SNPs$SNP)
@@ -611,20 +747,20 @@ RS_numbers$snp <- gsub("chr", RS_numbers$snp, replacement = "")
 
 #variant effect predictor (http://grch37.ensembl.org/Homo_sapiens/Tools/VEP) - see VEP_input.txt in Scripts folder for input (had to flip the alleles in input because effect allele is allele 1 in here - but the second allele in the VEP)
 #process VEP_output file and add to RS_numbers
-VEP_output <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/VEP/VEP_output_PROPER.txt")
-VEP_output <- VEP_output[VEP_output$Existing_variation != "-"] #remove any without RS numbers
-VEP_output <- VEP_output[!duplicated(VEP_output$Location), ] #remove duplicates
-VEP_output[,4:19] <- NULL #remove irrelevant columns
-VEP_output[,5:14] <- NULL
-VEP_output[,11:18] <- NULL
-VEP_output[,5] <- NULL
-VEP_output$Location <- sub("-.*", "", VEP_output$Location) #make chr:position
-colnames(VEP_output) <- c("Name", "snp", "a1", "rsid", "afr", "amr", "eas", "eur", "sas") #make names clearer
-VEP_output <- VEP_output %>% dplyr::mutate(Allele2 = str_extract(Name, "[^_]+$")) #extract allele2 info
-VEP_output$a2 <- sub("/.*", "", VEP_output$Allele2) #perfect allele2 info
-VEP_output$Name <- NULL
-VEP_output$Allele2 <- NULL
-RS_numbers <- rbind(RS_numbers, VEP_output, fill = T)
+#VEP_output <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/VEP/VEP_output_PROPER.txt")
+#VEP_output <- VEP_output[VEP_output$Existing_variation != "-"] #remove any without RS numbers
+#VEP_output <- VEP_output[!duplicated(VEP_output$Location), ] #remove duplicates
+#VEP_output[,4:19] <- NULL #remove irrelevant columns
+#VEP_output[,5:14] <- NULL
+#VEP_output[,11:18] <- NULL
+#VEP_output[,5] <- NULL
+#VEP_output$Location <- sub("-.*", "", VEP_output$Location) #make chr:position
+#colnames(VEP_output) <- c("Name", "snp", "a1", "rsid", "afr", "amr", "eas", "eur", "sas") #make names clearer
+#VEP_output <- VEP_output %>% dplyr::mutate(Allele2 = str_extract(Name, "[^_]+$")) #extract allele2 info
+#VEP_output$a2 <- sub("/.*", "", VEP_output$Allele2) #perfect allele2 info
+#VEP_output$Name <- NULL
+#VEP_output$Allele2 <- NULL
+#RS_numbers <- rbind(RS_numbers, VEP_output, fill = T)
 
 
 ########### NOTE THAT 5 SNPs ARE STILL MISSING !!!!!!
@@ -691,13 +827,13 @@ MRInput$GCA_Beta <- log(MRInput$GCA_OR)
 
 #check whether GCA_A1/A2 and a1/a2 alleles match, then adjust accordingly
 
-write.table(MRInput, "/Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/MRInput.txt", row.names = F, quote = F)
+write.table(MRInput, "/Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/MRInput_5e5.txt", row.names = F, quote = F)
 
 
 
 
 #read in exposure (APOL1)
-exposure <- read_exposure_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/MRInput.txt",
+exposure <- read_exposure_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/MRInput_5e5.txt",
                    snp_col = "rsid",
                    beta_col = "APOL1_Beta",
                    se_col = "APOL1_SE",
@@ -710,7 +846,7 @@ exposure$exposure <- "APOL1"
 
 #DO THE SAME FOR OUTCOME (GCA)
 
-outcome <- read_outcome_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/MRInput.txt",
+outcome <- read_outcome_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/MRInput_5e5.txt",
                                snp_col = "rsid",
                                beta_col = "GCA_Beta",
                                se_col = "GCA_SE",
