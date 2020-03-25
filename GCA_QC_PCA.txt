@@ -131,6 +131,7 @@ MENDELIAN RANDOMISATION PREP [PLINK] - MAKE AN R2 (LD) MATRIX
 
 
 
+/Volumes/Natalies_HD/PhD/Tools_Software/plink --bfile /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/all_chr --r2 --matrix --extract /Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_conservative_SNPs.txt --out /Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1_r2_matrix_conservative --write-snplist
 
 
 

@@ -288,30 +288,51 @@ dataset$Protein <- sub(".[^.]+$", "", dataset$Protein)
 
 #read in R2 files
 #read in files
-Names <- fread("/Users/natalie/Library/Mobile Documents/com~apple~TextEdit/Documents/names.txt", header = F)
-R2 <- fread("/Users/natalie/Library/Mobile Documents/com~apple~TextEdit/Documents/R2.txt")
+#Names <- fread("/Users/natalie/Library/Mobile Documents/com~apple~TextEdit/Documents/names.txt", header = F)
+#R2 <- fread("/Users/natalie/Library/Mobile Documents/com~apple~TextEdit/Documents/R2.txt")
 #make new dataframe to hold variances
-Sun <- NA
-Sun$Names <- Names
-Sun$R2 <- R2
-Sun <- as.data.frame(Sun)
-Sun$NA.<- NULL
-colnames(Sun) <- c("Name", "R2")
-Summary_R2 <- describe(Sun$R2)
-Keep_Proteins <- Sun[Sun$R2 >= Summary_R2$median,]
+#Sun <- NA
+#Sun$Names <- Names
+#Sun$R2 <- R2
+#Sun <- as.data.frame(Sun)
+#Sun$NA.<- NULL
+#colnames(Sun) <- c("Name", "R2)
+#Summary_R2 <- describe(Sun$R2)
+#Keep_Proteins <- Sun[Sun$R2 >= Summary_R2$median,]
 
 
 #subset my data by R2
-dataset <- merge(dataset, Keep_Proteins, by.x = "Protein", by.y = "Name")
+#dataset <- merge(dataset, Keep_Proteins, by.x = "Protein", by.y = "Name")
 #dataset <- merge(dataset, Sun, by.x = "Protein", by.y = "Name")
 
 
+#remove duplicates keeping the lower P value
+dataset$Protein2 <- gsub("\\..*","", dataset$Protein)
+dataset <- dataset[order(dataset$Protein2, dataset$P), ]
+dataset <- dataset[ !duplicated(dataset$Protein2), ] 
+
+
+write.table(dataset, "/Volumes/Natalies_HD/PhD/GCA_PRS/PRSice/summary_table.txt", sep = "\t", quote = F, row.names = F)
+
+#make table of just empirical-p < 0.05
+dataset <- dataset[order(dataset$Empirical.P),]
+dataset <- dataset[dataset$Empirical.P < 0.05,]
+dataset$Phenotype <- NULL
+dataset$Set <- NULL
+dataset$Prevalence <- NULL
+dataset$P <- NULL
+dataset$Protein <- NULL
+
+write.csv(dataset, "/Volumes/Natalies_HD/PhD/GCA_PRS/PRSice/summary_table_0.05.csv", quote = F, row.names = F)
 
 
 ##### BIOCIRCOS PLOT OF PROTEIN PRS SIGNIFICANCE (NEW TABLE) #####
 
 library(tidyverse)
 library(RColorBrewer)
+
+#Bonferroni significant
+Bonferroni <- 0.05 / 364
 
 #make log P for visualisation
 #dataset$Empirical.P <- as.numeric(dataset$Empirical.P)
@@ -323,7 +344,7 @@ protein_PRS_table <- dataset
 #identify whether P is signficant
 protein_PRS_table$cols <- 1
 protein_PRS_table$cols[protein_PRS_table$Empirical.P <= 0.05] <- 2
-protein_PRS_table$cols[protein_PRS_table$Empirical.P < 0.01] <- 0
+protein_PRS_table$cols[protein_PRS_table$Empirical.P <= Bonferroni] <- 0
 protein_PRS_table$cols[protein_PRS_table$cols == 1] <- "#8DD3C7"
 protein_PRS_table$cols[protein_PRS_table$cols == 0] <- "#FFFFB3"
 protein_PRS_table$cols[protein_PRS_table$cols == 2] <- "#BEBADA"  
@@ -332,9 +353,22 @@ protein_PRS_table$P_labels[protein_PRS_table$Empirical.P > 0.05] <- NA
 protein_PRS_table$Protein_names <- protein_PRS_table$Protein
 protein_PRS_table$Protein_names[protein_PRS_table$Empirical.P > 0.05] <- NA
 
+
+# C2orf40.6362.6.3; C2orf66.5677.15.3; GALNT1.7090.17.3; GALNT10.7003.4.3; 
+# 49; 173; 174
+protein_PRS_table$Protein_names[protein_PRS_table$Protein2 == "C2orf40"] <- NA
+protein_PRS_table$Protein_names[protein_PRS_table$Protein2 == "C2orf66"] <- NA
+protein_PRS_table$Protein_names[protein_PRS_table$Protein2 == "GALNT1"] <- NA
+protein_PRS_table$Protein_names[protein_PRS_table$Protein2 == "GALNT10"] <- NA
+#add these after
+
+#remove end stuff from protein names
+#protein_PRS_table$Protein_names <- gsub("\\..*","", protein_PRS_table$Protein_names)
+
+
 #add labels
 label_data <- protein_PRS_table
-label_data$angles <- seq(1,254)
+label_data$angles <- seq(1,nrow(protein_PRS_table))
 
 
 # calculate the ANGLE of the labels
@@ -359,7 +393,7 @@ p <- ggplot(protein_PRS_table, aes(x=as.factor(Protein), y=logP)) +       # Note
   geom_bar(stat="identity", fill=protein_PRS_table$cols) +
   
   # Limits of the plot = very important. The negative value controls the size of the inner circle, the positive one is useful to add size over each bar
-  ylim(-0.3,2.1) +
+  ylim(-0.4,2.5) +
   
   # Custom the theme: no axis title and no cartesian grid
   theme_minimal() +
@@ -374,13 +408,14 @@ p <- ggplot(protein_PRS_table, aes(x=as.factor(Protein), y=logP)) +       # Note
   
   # This makes the coordinate polar instead of cartesian.
   
-  geom_text(data=label_data, aes(x=Protein, y=logP+0.09, label=Protein_names, hjust=hjust), color="black", fontface="bold",alpha=0.9, size=1.65, angle= label_data$angle, inherit.aes = FALSE) #+
+  geom_text(data=label_data, aes(x=Protein, y=logP+0.09, label=Protein_names, hjust=hjust), color="black", fontface="bold",alpha=0.9, size=2, angle= label_data$angle, inherit.aes = FALSE) #+
 #geom_text(data=label_data, aes(x=Protein, y=logP+0.07, label=P_labels, hjust=hjust), color="black", fontface="bold",alpha=0.6, size=2.5, angle= label_data$angle, inherit.aes = FALSE) 
 
 
 p
 
 
+#text("C2orf40.6362.6.3 C2orf66.5677.15.3 GALNT1.7090.17.3 GALNT10.7003.4.3", color="black", fontface="bold",alpha=0.9, size=1.65)
 
 
 
@@ -668,9 +703,28 @@ library(tidyverse)
 
 #liberal
 MRInput <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_liberal.txt")
+#generate SNPs for input to matrix
+MRInput <- as.data.frame(MRInput$SNP)
+write.table(MRInput, "/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_liberal_SNPs.txt", row.names = F, col.names = F, quote = F)
+
 
 #conservative
 MRInput <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_conservative.txt")
+#generate SNPs for input to matrix
+MRInput <- as.data.frame(MRInput$SNP)
+write.table(MRInput, "/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_conservative_SNPs.txt", row.names = F, col.names = F, quote = F)
+
+
+#make matrix from plink output
+matrix <- read.matrix("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1_r2_matrix_conservative.ld")
+#read in names for columns/rows
+matrix_names <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1_r2_matrix_conservative.snplist", header = F)
+matrix_names <- as.character(as.list(matrix_names$V1))
+row.names(matrix) <- matrix_names
+colnames(matrix) <- matrix_names
+#change order of SNPs in MRInput to match matrix names list
+MRInput <- MRInput[match(matrix_names, MRInput$SNP),]
+
 
 
 #create object
@@ -701,12 +755,16 @@ mr_plot(MRInputObject)
 
 
 
-##### Two Sample MR #####
+##### Two Sample MR prep (DEP) #####
 
 library(data.table)
 library(TwoSampleMR)
 library(stringr)
 library(dplyr)
+
+
+### OPTIONAL DATA PREP ### 
+
 
 
 #load APOL1, create new marker column and rename columns
@@ -716,7 +774,6 @@ New_Marker <- function(tablename, chromosome, location) {
 }
 APOL1$New_Marker <- New_Marker(APOL1, APOL1$chromosome, APOL1$position)
 colnames(APOL1) <- c("Variant_ID", "chromosome", "position", "APOL1_Allele1", "APOL1_Allele2", "APOL1_Beta", "APOL1_SE", "APOL1_logP", "APOL1_P", "New_Marker")
-
 
 
 #load in APOL1_SNPs, refine by correct p value, keep only SNP chr:positions and add "chr" before for use in phenoscanner
@@ -832,13 +889,33 @@ write.table(MRInput, "/Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/MRInput_5e5.txt",
 
 
 
+##### PERFORM TS-MR #####
+
+library(data.table)
+library(TwoSampleMR)
+library(stringr)
+library(dplyr)
+
+##Read in RS numbers
+RS_numbers <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_SNPs.txt")
+RS_numbers$snp <- gsub("chr", RS_numbers$snp, replacement = "")
+#read in liberal or conservative score (already harmonized)
+MRInput <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_conservative.txt")
+#merge for RS numbers
+MRInput <- merge(MRInput, RS_numbers, by.x = "SNP", by.y = "snp")
+MRInput <- MRInput[!duplicated(MRInput$SNP),] 
+#save for future work
+write.table(MRInput, "/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_TSMR_conservative.txt", row.names = F, quote = F)
+
+
+
 #read in exposure (APOL1)
-exposure <- read_exposure_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/MRInput_5e5.txt",
+exposure <- read_exposure_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1/MRInput_TSMR_conservative.txt",
                    snp_col = "rsid",
                    beta_col = "APOL1_Beta",
                    se_col = "APOL1_SE",
-                   effect_allele_col = "APOL1_Allele1",
-                   other_allele_col = "APOL1_Allele2",
+                   effect_allele_col = "APOL1_A1",
+                   other_allele_col = "APOL1_A2",
                    pval_col = "APOL1_P")
 
 exposure$exposure <- "APOL1"
@@ -846,7 +923,7 @@ exposure$exposure <- "APOL1"
 
 #DO THE SAME FOR OUTCOME (GCA)
 
-outcome <- read_outcome_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/MRInput_5e5.txt",
+outcome <- read_outcome_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1/MRInput_TSMR_conservative.txt",
                                snp_col = "rsid",
                                beta_col = "GCA_Beta",
                                se_col = "GCA_SE",
@@ -880,8 +957,15 @@ p1[[1]]
 p2 <- mr_forest_plot(res_single)
 p2[[1]]  
 
+#leave-one-out-plot
+res_loo <- mr_leaveoneout(harmonised)
+p3 <- mr_leaveoneout_plot(res_loo)
+p3[[1]]
 
-
+#funnel plot
+res_single <- mr_singlesnp(harmonised)
+p4 <- mr_funnel_plot(res_single)
+p4[[1]]
 
 
 ##### (DEP) attempt 2 MR package #####
@@ -1193,3 +1277,65 @@ IVWObject
 
 
 mr_plot(MRInputObject)
+
+##### FOR INPUT TO LDSC #####
+
+library(data.table)
+
+# Merge GCA files
+
+#merge GCA GWAS files
+setwd("/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/My_GWAS")
+file_list <- list.files(pattern = ".assoc.dosage")
+for (file in file_list){
+  # if the merged dataset doesn't exist, create it
+  if (!exists("dataset")){
+    dataset <- fread(file, sep = " ")
+  }
+  
+  # if the merged dataset does exist, append to it
+  if (exists("dataset")){
+    temp_dataset <-fread(file, sep = " ")
+    dataset<-rbind(dataset, temp_dataset)
+    rm(temp_dataset)
+  }
+}
+GCA <- dataset
+
+write.table(GCA, "/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/My_GWAS/GCA_all.txt", sep = "\t", quote = F, row.names = F)
+
+
+
+#Get RSid numbers from HRC
+HRC <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/LD_score_regression/HRC.r1-1.GRCh37.wgs.mac5.sites.tab")
+HRC$`#CHROM` <- as.factor(HRC$`#CHROM`)
+
+#add new marker column
+#New_Marker <- function(tablename, chromosome, location) {
+#  tablename$New_Marker <- paste(chromosome, location, sep = ":")
+#}
+#HRC$New_Marker <- New_Marker(HRC, HRC$`#CHROM`, HRC$POS)
+
+
+#get RS numbers for GCA
+GCA <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/My_GWAS/GCA_all.txt")
+GCA$`#CHROM` <- gsub(":.*", "", GCA$SNP)
+GCA$POS <- gsub(".*:", "", GCA$SNP)
+GCA$POS <- as.integer(GCA$POS)
+GCA$`#CHROM` <- as.factor(GCA$`#CHROM`)
+GCA_temp <- merge(GCA, HRC, by = c("#CHROM", "POS"), all.x = T, all.y = F)
+GCA_temp <- GCA_temp[!duplicated(GCA_temp$SNP),]
+write.table(GCA_temp, "/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/My_GWAS/GCA_all_RSid.txt", quote = F, row.names = F, sep = "\t")
+
+
+#get RS numbers for APOL1
+APOL1 <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/Sun_APOL1.9506.10.3_ALL.txt")
+colnames(APOL1) <- c("VARIANT_ID", "#CHROM", "POS", "Allele1", "Allele2", "Beta", "StdErr", "log(P)", "P", "New_Marker")
+APOL1$POS <- as.integer(APOL1$POS)
+APOL1$`#CHROM` <- as.factor(APOL1$`#CHROM`)
+APOL1_temp <- merge(APOL1, HRC, by = c("#CHROM", "POS"), all.x = T, all.y = F)
+write.table(APOL1_temp, "/Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/Sun_APOL1.9506.10.3_ALL_RSid.txt", quote = F, row.names = F, sep = "\t")
+
+
+
+
