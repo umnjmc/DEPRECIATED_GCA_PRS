@@ -427,7 +427,7 @@ library(data.table)
 
 
 #load in APOL1_SNPs, refine by correct p value, keep only SNP chr:positions and add "chr" before for use in phenoscanner
-APOL1_SNPs <- fread("/Users/natalie/Downloads/APOL1.9506.10.3.snp")
+APOL1_SNPs <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/PRSice/APOL1.9506.10.3/APOL1.9506.10.3.snp")
 APOL1_SNPs <- APOL1_SNPs[APOL1_SNPs$P <= 0.00170005,]
 APOL1_SNPs <- as.data.frame(APOL1_SNPs[,APOL1_SNPs$SNP])
 APOL1_SNPs$`APOL1_SNPs[, APOL1_SNPs$SNP]` <- paste0("chr", APOL1_SNPs$`APOL1_SNPs[, APOL1_SNPs$SNP]`)
@@ -693,6 +693,10 @@ MRInput <- MRInput[MRInput$APOL1_P <= 5e-5,]
 write.table(MRInput, "/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_conservative.txt", quote = F, row.names = F, sep = "\t")
 
 
+
+
+
+
 ##### MR BURGESS PACKAGE - CONDUCT MR ######
 
 library(data.table)
@@ -777,8 +781,8 @@ colnames(APOL1) <- c("Variant_ID", "chromosome", "position", "APOL1_Allele1", "A
 
 
 #load in APOL1_SNPs, refine by correct p value, keep only SNP chr:positions and add "chr" before for use in phenoscanner
-APOL1_SNPs <- fread("/Users/natalie/Downloads/APOL1.9506.10.3.snp")
-APOL1_SNPs <- APOL1_SNPs[APOL1_SNPs$P <= 5e-05,] #0.00170005
+APOL1_SNPs <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/PRSice/APOL1.9506.10.3/APOL1.9506.10.3.snp")
+APOL1_SNPs <- APOL1_SNPs[APOL1_SNPs$P <= 0.00170005,] #0.00170005
 APOL1_SNPs <- as.data.frame(APOL1_SNPs[,APOL1_SNPs$SNP])
 colnames(APOL1_SNPs) <- "SNP"
 APOL1_SNPs$SNP <- as.character(APOL1_SNPs$SNP)
@@ -786,6 +790,23 @@ APOL1_SNPs$SNP <- as.character(APOL1_SNPs$SNP)
 
 #merge target SNP table and APOL1 table to get Betas and SEs
 APOL1 <- merge(APOL1_SNPs, APOL1, by.x = "SNP", by.y = "New_Marker")
+
+
+#to read into VEP 
+VEP_input <- 1
+VEP_input$Chr <- APOL1$chromosome
+VEP_input <- as.data.frame(VEP_input)
+VEP_input$pos1 <- APOL1$position
+VEP_input$pos2 <- APOL1$position
+VEP_input$allele <- paste0(APOL1$APOL1_Allele1, "/", APOL1$APOL1_Allele2)
+VEP_input$x <- 1
+VEP_input$X1 <- NULL
+write.table(VEP_input, "/Volumes/Natalies_HD/PhD/GCA_PRS/VEP/APOL1_VEP_Input.txt", sep = " ", row.names = F, quote = F, col.names = F)
+
+#histogram of chromosome locations
+hist(VEP_input$Chr, breaks = c(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22))
+
+
 
 
 ##Read in RS numbers
@@ -895,6 +916,7 @@ library(data.table)
 library(TwoSampleMR)
 library(stringr)
 library(dplyr)
+library(mr.raps)
 
 ##Read in RS numbers
 RS_numbers <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_SNPs.txt")
@@ -910,7 +932,7 @@ write.table(MRInput, "/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/M
 
 
 #read in exposure (APOL1)
-exposure <- read_exposure_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1/MRInput_TSMR_conservative.txt",
+exposure <- read_exposure_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1/MRInput_TSMR_liberal.txt",
                    snp_col = "rsid",
                    beta_col = "APOL1_Beta",
                    se_col = "APOL1_SE",
@@ -923,7 +945,7 @@ exposure$exposure <- "APOL1"
 
 #DO THE SAME FOR OUTCOME (GCA)
 
-outcome <- read_outcome_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1/MRInput_TSMR_conservative.txt",
+outcome <- read_outcome_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1/MRInput_TSMR_liberal.txt",
                                snp_col = "rsid",
                                beta_col = "GCA_Beta",
                                se_col = "GCA_SE",
@@ -937,7 +959,9 @@ outcome$outcome <- "GCA"
 #MAKE SURE YOU HARMONIZE EFFECT AND OTHER ALLELES (https://rdrr.io/github/MRCIEU/TwoSampleMR/man/harmonise_data.html)
 
 harmonised <- harmonise_data(exposure, outcome, action = 2)
+
 #harmonised$se.outcome <- log(harmonised$se.outcome) #log transform the SE
+
 
 
 #MR tests
@@ -946,7 +970,8 @@ res_mr <- mr(harmonised)
 res_heterogeneity <- mr_heterogeneity(harmonised)
 res_pleiotropy <- mr_pleiotropy_test(harmonised)
 res_single <- mr_singlesnp(harmonised)
-
+res_egger <- mr_egger_regression(harmonised$beta.exposure, harmonised$beta.outcome, harmonised$se.exposure, harmonised$se.outcome)
+res_mrraps <- mr(harmonised, method_list = c("mr_raps"))
 
 
 #Scatter plot
@@ -966,6 +991,20 @@ p3[[1]]
 res_single <- mr_singlesnp(harmonised)
 p4 <- mr_funnel_plot(res_single)
 p4[[1]]
+
+
+#directionality test 
+harmonised$samplesize.exposure <- 3563
+harmonised$samplesize.exposure <- 3348
+get_r_from_lor(harmonised$beta.outcome, ) 
+direction <- directionality_test(harmonised)
+
+
+#F-statistic
+F_stat <- fishers_combined_test(outcome$pval.outcome)
+
+
+
 
 
 ##### (DEP) attempt 2 MR package #####
@@ -1154,7 +1193,7 @@ res_mr <- mr(harmonised)
 
 
 
-##### MR with borderline significant #####
+##### (DEP) MR with borderline significant #####
 
 library(data.table)
 library(MendelianRandomization)
@@ -1278,6 +1317,231 @@ IVWObject
 
 mr_plot(MRInputObject)
 
+##### Two sample MR with just 5e-8 variants #####
+
+
+library(data.table)
+library(TwoSampleMR)
+
+#filter variants
+liberal <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1/MRInput_TSMR_liberal.txt")
+strict <- liberal[liberal$APOL1_P <= 5e-8,]
+write.table(strict, "/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1/MRInput_strict.txt", row.names = F, quote = F, sep = "\t")
+strict <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1/MRInput_strict.txt")
+#read in exposure (APOL1)
+exposure <- read_exposure_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1/MRInput_strict.txt",
+                               sep = "\t",
+                               snp_col = "rsid",
+                               beta_col = "APOL1_Beta",
+                               se_col = "APOL1_SE",
+                               effect_allele_col = "APOL1_A1",
+                               other_allele_col = "APOL1_A2",
+                               pval_col = "APOL1_P")
+exposure$exposure <- "APOL1"
+outcome <- read_outcome_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1/MRInput_strict.txt",
+                             sep = "\t",
+                             snp_col = "rsid",
+                             beta_col = "GCA_Beta",
+                             se_col = "GCA_SE",
+                             effect_allele_col = "GCA_A1",
+                             other_allele_col = "GCA_A2",
+                             pval_col = "GCA_P",
+                             eaf_col = "GCA_freq_A")
+outcome$outcome <- "GCA"
+#MAKE SURE YOU HARMONIZE EFFECT AND OTHER ALLELES (https://rdrr.io/github/MRCIEU/TwoSampleMR/man/harmonise_data.html)
+harmonised <- harmonise_data(exposure, outcome, action = 2)
+#MR tests
+res_mr <- mr(harmonised)
+res_heterogeneity <- mr_heterogeneity(harmonised)
+res_pleiotropy <- mr_pleiotropy_test(harmonised)
+res_single <- mr_singlesnp(harmonised)
+#Scatter plot
+p1 <- mr_scatter_plot(res_mr, harmonised)
+p1[[1]]
+#forest plot
+p2 <- mr_forest_plot(res_single)
+p2[[1]]  
+#leave-one-out-plot
+res_loo <- mr_leaveoneout(harmonised)
+p3 <- mr_leaveoneout_plot(res_loo)
+p3[[1]]
+#funnel plot
+res_single <- mr_singlesnp(harmonised)
+p4 <- mr_funnel_plot(res_single)
+p4[[1]]
+
+
+
+
+##### Two sample MR with just APOL1 locus variants #####
+
+
+library(data.table)
+library(TwoSampleMR)
+library(phenoscanner)
+
+
+# Make APOL1 locus risk score #
+
+#load APOL1 and create new marker column
+APOL1 <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/Sun_APOL1.9506.10.3_ALL.txt")
+New_Marker <- function(tablename, chromosome, location) {
+  tablename$New_Marker <- paste(chromosome, location, sep = ":")
+}
+APOL1$New_Marker <- New_Marker(APOL1, APOL1$chromosome, APOL1$position)
+APOL1 <- APOL1[APOL1$chromosome == 22,]
+APOL1 <- APOL1[APOL1$position >= 36649056,]
+APOL1<- APOL1[APOL1$position <= 36663576,]
+
+##82 SNPs present
+
+
+
+#merge GCA GWAS files
+setwd("/Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/Haras_GWAS")
+file_list <- list.files()
+for (file in file_list){
+  # if the merged dataset doesn't exist, create it
+  if (!exists("dataset")){
+    dataset <- fread(file, sep = " ")
+  }
+  
+  # if the merged dataset does exist, append to it
+  if (exists("dataset")){
+    temp_dataset <-fread(file, sep = " ")
+    dataset<-rbind(dataset, temp_dataset)
+    rm(temp_dataset)
+  }
+}
+GCA <- dataset
+GCA$SNP <- as.factor(GCA$SNP)
+
+
+#merge GCA/APOL1 tables to get variables
+MRInput <- merge(APOL1, GCA, by.x = "New_Marker", by.y = "SNP")
+
+#Get betas
+MRInput$GCA_Beta <- log(MRInput$OR)
+colnames(MRInput) <- c("SNP", "Variant_ID", "chromosome", "position", "APOL1_A1", "APOL1_A2", "APOL1_Beta", "APOL1_SE", "APOL1_logP", "APOL1_P", "GCA_A1", "GCA_A2", "GCA_FRQA", "GCA_FRQU", "GCA_INFO", "GCA_OR", "GCA_SE", "GCA_P", "GCA_Beta")
+
+
+#make them all upper case
+MRInput$APOL1_A1 <- toupper(MRInput$APOL1_A1)
+MRInput$APOL1_A2 <- toupper(MRInput$APOL1_A2)
+MRInput$GCA_A1<- toupper(MRInput$GCA_A1)
+MRInput$GCA_A2 <- toupper(MRInput$GCA_A2)
+
+#harmonise by hand
+match <- MRInput[MRInput$APOL1_A1 == MRInput$GCA_A1,] #check which ones are the same
+nonmatch <- subset(MRInput, !(SNP %in% match$SNP)) #check which arent
+nonmatch$GCA_Allele1 <- nonmatch$GCA_A2
+nonmatch$GCA_Allele2 <- nonmatch$GCA_A1
+nonmatch$GCA_A1 <- nonmatch$GCA_Allele1
+nonmatch$GCA_A2 <- nonmatch$GCA_Allele2
+nonmatch$GCA_Allele1 <- NULL
+nonmatch$GCA_Allele2 <- NULL
+nonmatch$GCA_Beta <- nonmatch$GCA_Beta * -1
+MRInput <- rbind(match, nonmatch)
+
+## 59 SNPs present in both 
+write.table(MRInput, "/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_APOL1_locus.txt", quote = F, row.names = F, sep = "\t")
+
+
+# get RS numbers from phenoscanner
+pheno_input <- as.data.frame(MRInput$SNP)
+colnames(pheno_input) <- "SNP"
+pheno_input$SNP <- paste0("chr", pheno_input$SNP)
+write.table(pheno_input, "/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/pheno_input_APOL1_locus.txt", quote = F, sep = " ", col.names = F, row.names = F)
+pheno_output <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/pheno_output.tsv")
+pheno_output$snp <- gsub("chr", "", pheno_output$snp)
+
+MRInput <- merge(MRInput, pheno_output, by.x = "SNP", by.y = "snp")
+write.table(MRInput, "/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_APOL1_locus.txt", quote = F, row.names = F, sep = "\t")
+
+## 58 SNPs have rsid's
+
+#run TS-MR
+
+#read in exposure (APOL1)
+exposure <- read_exposure_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_APOL1_locus.txt",
+                               sep = "\t",
+                               snp_col = "rsid",
+                               beta_col = "APOL1_Beta",
+                               se_col = "APOL1_SE",
+                               effect_allele_col = "APOL1_A1",
+                               other_allele_col = "APOL1_A2",
+                               pval_col = "APOL1_P")
+exposure$exposure <- "APOL1"
+#DO THE SAME FOR OUTCOME (GCA)
+outcome <- read_outcome_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_APOL1_locus.txt",
+                             sep = "\t",
+                             snp_col = "rsid",
+                             beta_col = "GCA_Beta",
+                             se_col = "GCA_SE",
+                             effect_allele_col = "GCA_A1",
+                             other_allele_col = "GCA_A2",
+                             pval_col = "GCA_P",
+                             eaf_col = "GCA_freq_A")
+outcome$outcome <- "GCA"
+#MAKE SURE YOU HARMONIZE EFFECT AND OTHER ALLELES (https://rdrr.io/github/MRCIEU/TwoSampleMR/man/harmonise_data.html)
+harmonised <- harmonise_data(exposure, outcome, action = 2)
+#MR tests
+res_mr <- mr(harmonised)
+res_heterogeneity <- mr_heterogeneity(harmonised)
+res_pleiotropy <- mr_pleiotropy_test(harmonised)
+res_single <- mr_singlesnp(harmonised)
+#Scatter plot
+p1 <- mr_scatter_plot(res_mr, harmonised)
+p1[[1]]
+#forest plot
+p2 <- mr_forest_plot(res_single)
+p2[[1]]  
+#leave-one-out-plot
+res_loo <- mr_leaveoneout(harmonised)
+p3 <- mr_leaveoneout_plot(res_loo)
+p3[[1]]
+#funnel plot
+res_single <- mr_singlesnp(harmonised)
+p4 <- mr_funnel_plot(res_single)
+p4[[1]]
+
+
+
+
+
+
+##### Sensitivity MR - PMR #####
+
+library(data.table)
+library(TwoSampleMR)
+
+
+#Prep APOL1 SNPs
+
+#load APOL1 and create new marker column
+APOL1 <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/Sun_APOL1.9506.10.3_ALL.txt")
+New_Marker <- function(tablename, chromosome, location) {
+  tablename$New_Marker <- paste(chromosome, location, sep = ":")
+}
+APOL1$New_Marker <- New_Marker(APOL1, APOL1$chromosome, APOL1$position)
+#load in APOL1_SNPs, refine by correct p value, keep only SNP chr:positions and add "chr" before for use in phenoscanner
+APOL1_SNPs <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/PRSice/APOL1.9506.10.3/APOL1.9506.10.3.snp")
+APOL1_SNPs <- APOL1_SNPs[APOL1_SNPs$P <= 0.00170005,]
+APOL1_SNPs <- as.data.frame(APOL1_SNPs[,APOL1_SNPs$SNP])
+colnames(APOL1_SNPs) <- "SNP"
+#merge tables to get Betas and SEs
+APOL1 <- merge(APOL1_SNPs, APOL1, by.x = "SNP", by.y = "New_Marker")
+
+
+
+
+
+
+
+
+
+
+
 ##### FOR INPUT TO LDSC #####
 
 library(data.table)
@@ -1335,6 +1599,65 @@ APOL1$POS <- as.integer(APOL1$POS)
 APOL1$`#CHROM` <- as.factor(APOL1$`#CHROM`)
 APOL1_temp <- merge(APOL1, HRC, by = c("#CHROM", "POS"), all.x = T, all.y = F)
 write.table(APOL1_temp, "/Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/Sun_APOL1.9506.10.3_ALL_RSid.txt", quote = F, row.names = F, sep = "\t")
+
+
+
+
+
+##### VEP & APOL1 risk score SNP investigation #####
+
+library(data.table)
+
+#load APOL1, create new marker column and rename columns
+APOL1 <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/Sun_APOL1.9506.10.3_ALL.txt")
+New_Marker <- function(tablename, chromosome, location) {
+  tablename$New_Marker <- paste(chromosome, location, sep = ":")
+}
+APOL1$New_Marker <- New_Marker(APOL1, APOL1$chromosome, APOL1$position)
+colnames(APOL1) <- c("Variant_ID", "chromosome", "position", "APOL1_Allele1", "APOL1_Allele2", "APOL1_Beta", "APOL1_SE", "APOL1_logP", "APOL1_P", "New_Marker")
+
+
+#load in APOL1_SNPs, refine by correct p value, keep only SNP chr:positions and add "chr" before for use in phenoscanner
+APOL1_SNPs <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/PRSice/APOL1.9506.10.3/APOL1.9506.10.3.snp")
+APOL1_SNPs <- APOL1_SNPs[APOL1_SNPs$P <= 0.00170005,] #0.00170005
+APOL1_SNPs <- as.data.frame(APOL1_SNPs[,APOL1_SNPs$SNP])
+colnames(APOL1_SNPs) <- "SNP"
+APOL1_SNPs$SNP <- as.character(APOL1_SNPs$SNP)
+
+
+#merge target SNP table and APOL1 table to get Betas and SEs
+APOL1 <- merge(APOL1_SNPs, APOL1, by.x = "SNP", by.y = "New_Marker")
+
+
+#to read into VEP 
+VEP_input <- 1
+VEP_input$Chr <- APOL1$chromosome
+VEP_input <- as.data.frame(VEP_input)
+VEP_input$pos1 <- APOL1$position
+VEP_input$pos2 <- APOL1$position
+VEP_input$allele <- paste0(APOL1$APOL1_Allele1, "/", APOL1$APOL1_Allele2)
+VEP_input$x <- 1
+VEP_input$X1 <- NULL
+write.table(VEP_input, "/Volumes/Natalies_HD/PhD/GCA_PRS/VEP/APOL1_VEP_Input.txt", sep = " ", row.names = F, quote = F, col.names = F)
+
+#histogram of chromosome locations
+hist(VEP_input$Chr, breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22), xlim = c(1,22), xlab = "Chromosome", plot = T, main = "Distribution of APOL1 Risk Score SNPs Across the Genome", col = c("#FFFFB3", "#BEBADA"))
+
+
+
+
+
+##### Stratified TAB-positive and other files #####
+
+library(readstata13)
+
+chr22 <- read.dta13("/Volumes/Natalies_HD/PhD/GCA_PRS/Stratified_TAB_data/chr22pos.dta")
+
+
+
+
+
+
 
 
 
