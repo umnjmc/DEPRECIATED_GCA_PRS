@@ -24,12 +24,12 @@ library(tidyr)
 #Sun_data_location <- "/Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/TEMPS/OSMR.10892.8.3"
 PRSice_R_location <- "/Volumes/Natalies_HD/PhD/Tools_Software/PRSice.R"
 PRSice_exec_location <- "/Volumes/Natalies_HD/PhD/Tools_Software/PRSice_mac"
-GCA_data <- "/Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/chr#"
-PCA <- "/Volumes/Natalies_HD/PhD/GCA_PRS/Results/PCA/PCA_regions_removed.eigenvec"
-Extract <- "/Volumes/Natalies_HD/PhD/GCA_PRS/PRSice/SOCS3/SOCS3_v3.valid"
-Output <- paste("/Volumes/Natalies_HD/PhD/GCA_PRS/PRSice/", Protein_name, "/", Protein_name, "_fine", sep = "")
+GCA_data <- "/Volumes/Natalies_HD/PhD/GCA_PRS/Stratified_TAB_data/nonpos/QC/chr#"
+PCA <- "/Volumes/Natalies_HD/PhD/GCA_PRS/Stratified_TAB_data/nonpos/QC/PCA/PCA_RR.eigenvec"
+Extract <- "/Volumes/Natalies_HD/PhD/GCA_PRS/Stratified_TAB_data/nonpos/PRSice/APOL1.9506.10.3/APOL1.9506.10.3.valid"
+Output <- paste("/Volumes/Natalies_HD/PhD/GCA_PRS/Stratified_TAB_data/nonpos/PRSice/", Protein_name, "/", Protein_name, sep = "")
 New_Sun_file_location <- paste("/Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/Sun_", Protein_name, "_ALL.txt", sep = "")
-Protein_directory <- paste("/Volumes/Natalies_HD/PhD/GCA_PRS/PRSice/", Protein_name, "_fine", sep = "")
+Protein_directory <- paste("/Volumes/Natalies_HD/PhD/GCA_PRS/Stratified_TAB_data/nonpos/PRSice/", Protein_name, sep = "")
 
 
 
@@ -52,15 +52,15 @@ system(paste("cd ", Sun_data_location,
 #collate all tables in a list
 #files <- list(SUN_chrom_1_meta_final_v1.tsv.gz, SUN_chrom_2_meta_final_v1.tsv.gz, 
 #              SUN_chrom_3_meta_final_v1.tsv.gz, SUN_chrom_4_meta_final_v1.tsv.gz, 
- #             SUN_chrom_5_meta_final_v1.tsv.gz, SUN_chrom_6_meta_final_v1.tsv.gz, 
-  #            SUN_chrom_7_meta_final_v1.tsv.gz, SUN_chrom_8_meta_final_v1.tsv.gz, 
-   #           SUN_chrom_9_meta_final_v1.tsv.gz, SUN_chrom_10_meta_final_v1.tsv.gz, 
-    #          SUN_chrom_11_meta_final_v1.tsv.gz, SUN_chrom_12_meta_final_v1.tsv.gz, 
-     #         SUN_chrom_13_meta_final_v1.tsv.gz, SUN_chrom_14_meta_final_v1.tsv.gz, 
-      #        SUN_chrom_15_meta_final_v1.tsv.gz, SUN_chrom_16_meta_final_v1.tsv.gz, 
-       #       SUN_chrom_17_meta_final_v1.tsv.gz, SUN_chrom_18_meta_final_v1.tsv.gz, 
-        #      SUN_chrom_19_meta_final_v1.tsv.gz, SUN_chrom_20_meta_final_v1.tsv.gz,
-         #     SUN_chrom_21_meta_final_v1.tsv.gz, SUN_chrom_22_meta_final_v1.tsv.gz)
+#             SUN_chrom_5_meta_final_v1.tsv.gz, SUN_chrom_6_meta_final_v1.tsv.gz, 
+#            SUN_chrom_7_meta_final_v1.tsv.gz, SUN_chrom_8_meta_final_v1.tsv.gz, 
+#           SUN_chrom_9_meta_final_v1.tsv.gz, SUN_chrom_10_meta_final_v1.tsv.gz, 
+#          SUN_chrom_11_meta_final_v1.tsv.gz, SUN_chrom_12_meta_final_v1.tsv.gz, 
+#         SUN_chrom_13_meta_final_v1.tsv.gz, SUN_chrom_14_meta_final_v1.tsv.gz, 
+#        SUN_chrom_15_meta_final_v1.tsv.gz, SUN_chrom_16_meta_final_v1.tsv.gz, 
+#       SUN_chrom_17_meta_final_v1.tsv.gz, SUN_chrom_18_meta_final_v1.tsv.gz, 
+#      SUN_chrom_19_meta_final_v1.tsv.gz, SUN_chrom_20_meta_final_v1.tsv.gz,
+#     SUN_chrom_21_meta_final_v1.tsv.gz, SUN_chrom_22_meta_final_v1.tsv.gz)
 #merge all tables
 #Sun <- do.call(rbind, files)
 

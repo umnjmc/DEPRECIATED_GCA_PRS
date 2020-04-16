@@ -587,7 +587,7 @@ APOL1$New_Marker <- New_Marker(APOL1, APOL1$chromosome, APOL1$position)
 
 #load in APOL1_SNPs, refine by correct p value, keep only SNP chr:positions and add "chr" before for use in phenoscanner
 APOL1_SNPs <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/PRSice/APOL1.9506.10.3/APOL1.9506.10.3.snp")
-APOL1_SNPs <- APOL1_SNPs[APOL1_SNPs$P <= 0.00170005,]
+APOL1_SNPs <- APOL1_SNPs[APOL1_SNPs$P <= 0.0016596,] #0.00170005 (standard) or 0.0016596 (fine and nonpos) or  
 APOL1_SNPs <- as.data.frame(APOL1_SNPs[,APOL1_SNPs$SNP])
 colnames(APOL1_SNPs) <- "SNP"
 
@@ -922,17 +922,17 @@ library(mr.raps)
 RS_numbers <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_SNPs.txt")
 RS_numbers$snp <- gsub("chr", RS_numbers$snp, replacement = "")
 #read in liberal or conservative score (already harmonized)
-MRInput <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_conservative.txt")
+MRInput <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_liberal_fine.txt")
 #merge for RS numbers
 MRInput <- merge(MRInput, RS_numbers, by.x = "SNP", by.y = "snp")
 MRInput <- MRInput[!duplicated(MRInput$SNP),] 
 #save for future work
-write.table(MRInput, "/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_TSMR_conservative.txt", row.names = F, quote = F)
+write.table(MRInput, "/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_TSMR_liberal_fine.txt", row.names = F, quote = F)
 
 
 
 #read in exposure (APOL1)
-exposure <- read_exposure_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1/MRInput_TSMR_liberal.txt",
+exposure <- read_exposure_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1/MRInput_TSMR_conservative.txt",
                    snp_col = "rsid",
                    beta_col = "APOL1_Beta",
                    se_col = "APOL1_SE",
@@ -945,7 +945,7 @@ exposure$exposure <- "APOL1"
 
 #DO THE SAME FOR OUTCOME (GCA)
 
-outcome <- read_outcome_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1/MRInput_TSMR_liberal.txt",
+outcome <- read_outcome_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1/MRInput_TSMR_conservative.txt",
                                snp_col = "rsid",
                                beta_col = "GCA_Beta",
                                se_col = "GCA_SE",
@@ -963,47 +963,93 @@ harmonised <- harmonise_data(exposure, outcome, action = 2)
 #harmonised$se.outcome <- log(harmonised$se.outcome) #log transform the SE
 
 
+#test each with heterogeneity
+harmonised_2 <- harmonised
+harmonised <- harmonised_2[harmonised_2$SNP != "rs6809081",]
+harmonised <- harmonised[harmonised$SNP != "rs61751507",]
+harmonised <- harmonised[harmonised$SNP != "rs182668035",]
+
+
+
+
+
 
 #MR tests
 
-res_mr <- mr(harmonised)
-res_heterogeneity <- mr_heterogeneity(harmonised)
-res_pleiotropy <- mr_pleiotropy_test(harmonised)
-res_single <- mr_singlesnp(harmonised)
-res_egger <- mr_egger_regression(harmonised$beta.exposure, harmonised$beta.outcome, harmonised$se.exposure, harmonised$se.outcome)
-res_mrraps <- mr(harmonised, method_list = c("mr_raps"))
 
-
+res_mr <- mr(harmonised) #MR
 #Scatter plot
-p1 <- mr_scatter_plot(res_mr, harmonised)
-p1[[1]]
+p1 <- mr_scatter_plot(res_mr, harmonised) 
+p1[[1]] 
 
+
+
+#Sensitivity tests
+
+
+#heterogeneity
+res_heterogeneity <- mr_heterogeneity(harmonised) 
+
+#horizontal pleiotropy
+res_pleiotropy <- mr_pleiotropy_test(harmonised) 
+
+#single SNP (wald ratio for each)
+res_single <- mr_singlesnp(harmonised) 
 #forest plot
 p2 <- mr_forest_plot(res_single)
 p2[[1]]  
+#funnel plot
+p4 <- mr_funnel_plot(res_single)
+p4[[1]]
 
 #leave-one-out-plot
 res_loo <- mr_leaveoneout(harmonised)
 p3 <- mr_leaveoneout_plot(res_loo)
 p3[[1]]
 
-#funnel plot
-res_single <- mr_singlesnp(harmonised)
-p4 <- mr_funnel_plot(res_single)
-p4[[1]]
+
+#detect outliers in funnel plot
+res_single_outliers <- res_single[res_single$b > 0.3,] #0.75
+#res_single_outliers <- res_single[res_single$b < -1.25,]
 
 
-#directionality test 
-harmonised$samplesize.exposure <- 3563
-harmonised$samplesize.exposure <- 3348
-get_r_from_lor(harmonised$beta.outcome, ) 
-direction <- directionality_test(harmonised)
+
+#remove rs6809081 SNP (identified as an outlier in LOO analysis) and repeat MR
+#harmonised_new <- harmonised[harmonised$beta.outcome < 0.3,]
+harmonised_new <- subset(harmonised, !(SNP %in% res_single_outliers$SNP))
+
+res_mr_new <- mr(harmonised_new)
+p1_new <- mr_scatter_plot(res_mr_new, harmonised_new) 
+p1_new[[1]]   
+res_heterogeneity_new <- mr_heterogeneity(harmonised_new) 
+res_pleiotropy_new <- mr_pleiotropy_test(harmonised_new) 
+res_single_new <- mr_singlesnp(harmonised_new) 
+p2_new <- mr_forest_plot(res_single_new)
+p2_new[[1]] 
+res_loo_new <- mr_leaveoneout(harmonised_new)
+p3_new <- mr_leaveoneout_plot(res_loo_new)
+p3_new[[1]]
+p4_new <- mr_funnel_plot(res_single_new)
+p4_new[[1]]
+
+write.table(res_single_outliers, "/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1/Pleiotropy_Outliers_Removed/conservative/outliers.txt", quote = F, row.names = F)
+
+
+
+
+#directionality test - need to get allele frequencies for this
+#harmonised$samplesize.exposure <- 3563
+#harmonised$samplesize.exposure <- 3348
+#new <- get_r_from_lor(harmonised$beta.outcome,) 
+#direction <- directionality_test(harmonised)
+
 
 
 #F-statistic
-F_stat <- fishers_combined_test(outcome$pval.outcome)
+#F_stat <- fishers_combined_test(outcome$pval.outcome)
 
 
+res_mrraps <- mr(harmonised, method_list = c("mr_raps"))
 
 
 
@@ -1325,8 +1371,8 @@ library(TwoSampleMR)
 
 #filter variants
 liberal <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1/MRInput_TSMR_liberal.txt")
-strict <- liberal[liberal$APOL1_P <= 5e-8,]
-write.table(strict, "/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1/MRInput_strict.txt", row.names = F, quote = F, sep = "\t")
+strict <- liberal[liberal$APOL1_P <= 5e-7,]
+write.table(strict, "/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1/MRInput_strict_7.txt", row.names = F, quote = F, sep = "\t")
 strict <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1/MRInput_strict.txt")
 #read in exposure (APOL1)
 exposure <- read_exposure_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1/MRInput_strict.txt",
@@ -1350,6 +1396,18 @@ outcome <- read_outcome_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomi
 outcome$outcome <- "GCA"
 #MAKE SURE YOU HARMONIZE EFFECT AND OTHER ALLELES (https://rdrr.io/github/MRCIEU/TwoSampleMR/man/harmonise_data.html)
 harmonised <- harmonise_data(exposure, outcome, action = 2)
+
+#remove outliers 
+harmonised <- subset(harmonised, !(SNP %in% res_single_outliers$SNP))
+harmonised_2 <- harmonised
+
+#test each with heterogeneity
+harmonised <- harmonised_2[harmonised_2$SNP != "rs6809081",]
+harmonised <- harmonised[harmonised$SNP != "rs61751507",]
+harmonised <- harmonised[harmonised$SNP != "rs182668035",]
+
+
+
 #MR tests
 res_mr <- mr(harmonised)
 res_heterogeneity <- mr_heterogeneity(harmonised)
@@ -1650,15 +1708,219 @@ hist(VEP_input$Chr, breaks = c(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19
 ##### Stratified TAB-positive and other files #####
 
 library(readstata13)
-
-chr22 <- read.dta13("/Volumes/Natalies_HD/PhD/GCA_PRS/Stratified_TAB_data/chr22pos.dta")
-
-
-
-
-
-
+library(data.table)
+library(MendelianRandomization)
+library(reshape2)
+library(tseries)
+library(tidyverse)
+library(TwoSampleMR)
 
 
 
+#load APOL1 and create new marker column
+APOL1 <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/Sun_APOL1.9506.10.3_ALL.txt")
+New_Marker <- function(tablename, chromosome, location) {
+  tablename$New_Marker <- paste(chromosome, location, sep = ":")
+}
+APOL1$New_Marker <- New_Marker(APOL1, APOL1$chromosome, APOL1$position)
+
+
+
+#load in APOL1_SNPs, refine by correct p value, keep only SNP chr:positions and add "chr" before for use in phenoscanner
+APOL1_SNPs <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/PRSice/APOL1.9506.10.3/APOL1.9506.10.3.snp")
+APOL1_SNPs <- APOL1_SNPs[APOL1_SNPs$P <= 0.001349,] #0.0016596 (nonpos) or 0.001349 (pos)
+APOL1_SNPs <- as.data.frame(APOL1_SNPs[,APOL1_SNPs$SNP])
+colnames(APOL1_SNPs) <- "SNP"
+
+
+#merge tables to get Betas and SEs
+APOL1 <- merge(APOL1_SNPs, APOL1, by.x = "SNP", by.y = "New_Marker")
+
+
+
+
+#merge GCA GWAS files
+setwd("/Volumes/Natalies_HD/PhD/GCA_PRS/Stratified_TAB_data/pos")
+file_list <- list.files(pattern = ".dta")
+for (file in file_list){
+  # if the merged dataset doesn't exist, create it
+  if (!exists("dataset")){
+    dataset <- read.dta13(file)
+  }
+  
+  # if the merged dataset does exist, append to it
+  if (exists("dataset")){
+    temp_dataset <-read.dta13(file)
+    dataset<-rbind(dataset, temp_dataset)
+    rm(temp_dataset)
+  }
+}
+GCA <- dataset
+GCA$SNP <- as.factor(GCA$snp)
+
+
+
+#merge GCA/SNP tables to get Betas and SEs
+GCA_SNPs <- subset(GCA, snp %in% APOL1_SNPs$SNP)
+GCA_SNPs <- GCA_SNPs[!duplicated(GCA_SNPs$snp), ]
+
+
+#merge GCA/APOL1 tables to get variables
+MRInput <- merge(APOL1, GCA, by.x = "SNP", by.y = "snp")
+MRInput <- MRInput[!duplicated(MRInput$SNP), ]
+
+#Get betas
+MRInput$GCA_Beta <- log(MRInput$OR)
+colnames(MRInput) <- c("SNP", "Variant_ID", "chromosome", "position", "APOL1_A1", "APOL1_A2", "APOL1_Beta", "APOL1_SE", "APOL1_logP", "APOL1_P", "GCA_A1", "GCA_A2", "GCA_FRQ_CASE", "GCA_FRQ_CONT", "GCA_INFO", "GCA_OR", "GCA_SE", "GCA_P", "DUPLICATES", "POS", "LOG10P", "CHR", "snp", "GCA_Beta")
+
+
+#make them all upper case
+MRInput$APOL1_A1 <- toupper(MRInput$APOL1_A1)
+MRInput$APOL1_A2 <- toupper(MRInput$APOL1_A2)
+MRInput$GCA_A1<- toupper(MRInput$GCA_A1)
+MRInput$GCA_A2 <- toupper(MRInput$GCA_A2)
+
+#harmonise by hand
+match <- MRInput[MRInput$APOL1_A1 == MRInput$GCA_A1,] #check which ones are the same
+nonmatch <- subset(MRInput, !(SNP %in% match$SNP)) #check which arent
+nonmatch$GCA_Allele1 <- nonmatch$GCA_A2
+nonmatch$GCA_Allele2 <- nonmatch$GCA_A1
+nonmatch$GCA_A1 <- nonmatch$GCA_Allele1
+nonmatch$GCA_A2 <- nonmatch$GCA_Allele2
+nonmatch$GCA_Allele1 <- NULL
+nonmatch$GCA_Allele2 <- NULL
+nonmatch$GCA_Beta <- nonmatch$GCA_Beta * -1
+MRInput <- rbind(match, nonmatch)
+
+
+
+
+#Filter for "liberal" score (just remove polygenic SNPs)
+
+Remove_poly_SNPs <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_snp_remove_5e-8_SNP_LIST.txt")
+MRInput <- subset(MRInput, !(SNP %in% Remove_poly_SNPs$APOL1_GWAS))
+
+write.table(MRInput, "/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_liberal_stratified_pos_fine.txt", quote = F, row.names = F, sep = "\t")
+
+
+
+
+##Read in RS numbers
+RS_numbers <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Phenoscanner/APOL1/APOL1_SNPs.txt")
+RS_numbers$snp <- gsub("chr", RS_numbers$snp, replacement = "")
+#read in liberal or conservative score (already harmonized)
+MRInput <- fread("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_liberal_stratified_pos_fine.txt")
+#merge for RS numbers
+MRInput <- merge(MRInput, RS_numbers, by.x = "SNP", by.y = "snp")
+MRInput <- MRInput[!duplicated(MRInput$SNP),] 
+#save for future work
+write.table(MRInput, "/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_TSMR_liberal_stratified_pos_fine.txt", row.names = F, quote = F)
+
+
+
+
+
+
+#read in exposure (APOL1)
+exposure <- read_exposure_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_TSMR_liberal_stratified_pos_fine.txt",
+                               snp_col = "rsid",
+                               beta_col = "APOL1_Beta",
+                               se_col = "APOL1_SE",
+                               effect_allele_col = "APOL1_A1",
+                               other_allele_col = "APOL1_A2",
+                               pval_col = "APOL1_P")
+
+exposure$exposure <- "APOL1"
+
+
+#DO THE SAME FOR OUTCOME (GCA)
+
+outcome <- read_outcome_data("/Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_TSMR_liberal_stratified_pos_fine.txt",
+                             snp_col = "rsid",
+                             beta_col = "GCA_Beta",
+                             se_col = "GCA_SE",
+                             effect_allele_col = "GCA_A1",
+                             other_allele_col = "GCA_A2",
+                             pval_col = "GCA_P",
+                             eaf_col = "GCA_freq_A")
+
+outcome$outcome <- "GCA"
+
+#MAKE SURE YOU HARMONIZE EFFECT AND OTHER ALLELES (https://rdrr.io/github/MRCIEU/TwoSampleMR/man/harmonise_data.html)
+
+harmonised <- harmonise_data(exposure, outcome, action = 2)
+
+#harmonised$se.outcome <- log(harmonised$se.outcome) #log transform the SE
+
+
+
+#MR tests
+
+
+res_mr <- mr(harmonised) #MR
+#Scatter plot
+p1 <- mr_scatter_plot(res_mr, harmonised)
+p1[[1]] 
+
+
+
+#Sensitivity tests
+
+
+#heterogeneity
+res_heterogeneity <- mr_heterogeneity(harmonised) 
+
+#horizontal pleiotropy
+res_pleiotropy <- mr_pleiotropy_test(harmonised) 
+
+#single SNP (wald ratio for each)
+res_single <- mr_singlesnp(harmonised) 
+#forest plot
+p2 <- mr_forest_plot(res_single)
+p2[[1]]  
+#funnel plot
+p4 <- mr_funnel_plot(res_single)
+p4[[1]]
+
+#leave-one-out-plot
+res_loo <- mr_leaveoneout(harmonised)
+p3 <- mr_leaveoneout_plot(res_loo)
+p3[[1]]
+
+
+
+
+
+
+
+##### Prep stratified PRS #####
+
+library(readstata13)
+
+neg <- read.dta13("/Volumes/Natalies_HD/PhD/GCA_PRS/Stratified_TAB_data/alldatanegatives.dta")
+pos <- read.dta13("/Volumes/Natalies_HD/PhD/GCA_PRS/Stratified_TAB_data/alldatapositives.dta")
+
+#pheno 1 = control; 2 = case
+
+neg_new  <- neg$fid
+neg_new <- as.data.frame(neg_new)
+colnames(neg_new) <- "FID"
+neg_new$IID <- neg$fid
+neg_new$pheno <- neg$pheno
+
+pos_new  <- pos$fid
+pos_new <- as.data.frame(pos_new)
+colnames(pos_new) <- "FID"
+pos_new$IID <- pos$fid
+pos_new$pheno <- pos$pheno
+
+write.table(neg_new, "/Volumes/Natalies_HD/PhD/GCA_PRS/Stratified_TAB_data/negative_pheno.txt", quote = F, row.names = F)
+write.table(pos_new, "/Volumes/Natalies_HD/PhD/GCA_PRS/Stratified_TAB_data/positive_pheno.txt", quote = F, row.names = F)
+
+#for extract
+neg_new$pheno <- NULL
+pos_new$pheno <- NULL
+
+write.table(neg_new, "/Volumes/Natalies_HD/PhD/GCA_PRS/Stratified_TAB_data/negative_pheno_extract.txt", quote = F, row.names = F)
+write.table(pos_new, "/Volumes/Natalies_HD/PhD/GCA_PRS/Stratified_TAB_data/positive_pheno_extract.txt", quote = F, row.names = F)
 
