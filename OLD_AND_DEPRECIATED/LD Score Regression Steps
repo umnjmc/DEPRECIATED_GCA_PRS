@@ -1,0 +1,119 @@
+LD Score Regression Steps
+
+- estimate genetic correlation between individual proteins and GCA
+- calculate the SNP-based heritability 
+
+Useful links
+- https://github.com/bulik/ldsc/wiki/Heritability-and-Genetic-Correlation
+- https://en.wikipedia.org/wiki/Linkage_disequilibrium_score_regression
+
+
+STEPS
+
+
+######
+
+
+#1) get European LD scores 
+
+cd /Volumes/Natalies_HD/PhD/GCA_PRS/LD_score_regression
+curl https://data.broadinstitute.org/alkesgroup/LDSCORE/eur_w_ld_chr.tar.bz2 -o eur_w_ld_chr.tar.bz2
+tar -jxvf eur_w_ld_chr.tar.bz2
+
+
+######
+ 
+
+#2) because my protein summary stats have no INFO score, get hapmap3 data - my GCA summary stats do so they're fine (they just need merging in R - see GCA_PRS.R script)
+
+cd /Volumes/Natalies_HD/PhD/GCA_PRS/LD_score_regression
+curl https://data.broadinstitute.org/alkesgroup/LDSCORE/w_hm3.snplist.bz2 -o w_hm3.snplist.bz2 
+bunzip2 w_hm3.snplist.bz2
+
+
+#####
+
+
+#3) Reformat summary statistics for sumstats - 
+
+# a. Download haplotype reference consortium Chr37 and get RS numbers for protein files (R)
+
+# b. for proteins
+
+cd /Volumes/Natalies_HD/PhD/GCA_PRS/LD_score_regression
+/Volumes/Natalies_HD/PhD/Tools_Software/ldsc/munge_sumstats.py \
+--sumstats /Volumes/Natalies_HD/PhD/GCA_PRS/Sun_data/Sun_APOL1.9506.10.3_ALL_RSid.txt \
+--N 3301 \
+--out /Volumes/Natalies_HD/PhD/GCA_PRS/LD_score_regression/Formatted_Protein_Files/APOL1 \
+--merge-alleles w_hm3.snplist \
+--snp ID \
+--a1 Allele1 \
+--a2 Allele2 \
+--p P \
+--signed-sumstats Beta,0 \
+--ignore VARIANT_ID,'log(P)'
+
+# c. Merge GCA files and get RS numbers for GCA files (R)
+
+# d. for GCA
+
+cd /Volumes/Natalies_HD/PhD/GCA_PRS/LD_score_regression
+/Volumes/Natalies_HD/PhD/Tools_Software/ldsc/munge_sumstats.py \
+--sumstats /Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/My_GWAS/GCA_all_RSid.txt \
+--N 3348 \
+--N-cas 729 \
+--N-con 2619 \
+--out /Volumes/Natalies_HD/PhD/GCA_PRS/LD_score_regression/Formatted_GCA/GCA \
+--snp ID \
+--a1 A1 \
+--a2 A2 \
+--p P \
+--signed-sumstats OR,1 \
+--info INFO \
+--ignore SNP
+
+
+#####
+
+
+#4) Estimate the SNP-based heritability of proteins
+
+
+cd /Volumes/Natalies_HD/PhD/GCA_PRS/LD_score_regression
+/Volumes/Natalies_HD/PhD/Tools_Software/ldsc/ldsc.py \
+--h2 /Volumes/Natalies_HD/PhD/GCA_PRS/LD_score_regression/Formatted_Protein_Files/APOL1.sumstats.gz \
+--ref-ld-chr eur_w_ld_chr/ \
+--w-ld-chr eur_w_ld_chr/ \
+--out /Volumes/Natalies_HD/PhD/GCA_PRS/LD_score_regression/H2_Results/APOL1_h2
+
+
+
+#####
+
+
+
+#5) Estimate the genetic correlation between the protein and GCA
+
+
+cd /Volumes/Natalies_HD/PhD/GCA_PRS/LD_score_regression
+/Volumes/Natalies_HD/PhD/Tools_Software/ldsc/ldsc.py \
+--rg /Volumes/Natalies_HD/PhD/GCA_PRS/LD_score_regression/Formatted_Protein_Files/APOL1.sumstats.gz,/Volumes/Natalies_HD/PhD/GCA_PRS/LD_score_regression/Formatted_GCA/GCA.sumstats.gz \
+--ref-ld-chr eur_w_ld_chr/ \
+--w-ld-chr eur_w_ld_chr/ \
+--out /Volumes/Natalies_HD/PhD/GCA_PRS/LD_score_regression/Correlation_Results/APOL1_GCA
+
+
+
+
+
+
+Rscript /Volumes/Natalies_HD/PhD/GCA_PRS/Scripts/LDSC_script.R IL1R2
+
+
+
+
+
+
+
+
+

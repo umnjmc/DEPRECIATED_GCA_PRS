@@ -1,0 +1,138 @@
+
+QUALITY CONTROL AND PCA STEPS
+
+
+
+STEP1 - Quality control [PLINK]
+*Create .bed .bim and .fam files, and apply QC filters
+*Convert vcf to binary and only keep biallelic
+*Repeat for each chromosome
+
+
+/Volumes/Natalies_HD/PhD/Tools_Software/plink2 --vcf /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/chr14/chr14.dose.vcf.gz --out /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/chr14 --double-id --allow-no-sex --pheno /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/allccIDs.txt --make-bed --maf 0.01 --geno 0.03 --extract-col-cond-min 0.5 --extract-col-cond /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/chr14/chr.14_infonew.txt 10 3 '#'
+
+
+
+
+
+STEP2 - Merge files for IBD analysis [PLINK]
+
+
+Step 2a) Get triallelic variants
+*Repeat for each chromosome
+
+/Volumes/Natalies_HD/PhD/Tools_Software/plink --bfile /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/chr1 --merge-list /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/chrlist.txt --make-bed --out /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/all_chr
+
+
+
+Step 2b) Remove triallelic variants
+*Repeat for each chromosome
+
+/Volumes/Natalies_HD/PhD/Tools_Software/plink --bfile /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/chr14 --exclude /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/all_chr-merge.missnp --allow-no-sex --make-bed --out /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/chr14_new 
+
+
+
+Step 2c) Join together
+*Using list of chromosomes in a text file
+
+/Volumes/Natalies_HD/PhD/Tools_Software/plink --bfile /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/chr1_new --merge-list /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/chrlist.txt --make-bed --allow-no-sex --out /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/all_chr
+
+
+
+
+
+STEP3 - IBD and PCA [PLINK]
+
+
+step3a) LD pruning for IBD analysis
+
+/Volumes/Natalies_HD/PhD/Tools_Software/plink --bfile /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/all_chr --indep-pairwise 50 5 0.1 --out /Volumes/Natalies_HD/PhD/GCA_PRS/Results/IBD/GCA_pruned --allow-no-sex
+
+
+
+step3b) IBD analysis
+
+/Volumes/Natalies_HD/PhD/Tools_Software/plink --bfile /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/all_chr --genome --exclude /Volumes/Natalies_HD/PhD/GCA_PRS/Results/IBD/GCA_pruned.prune.out --allow-no-sex --out /Volumes/Natalies_HD/PhD/GCA_PRS/Results/IBD/GCA_IBD
+
+
+
+step3c) PCA
+
+/Volumes/Natalies_HD/PhD/Tools_Software/plink --bfile /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/all_chr --remove /Volumes/Natalies_HD/PhD/GCA_PRS/Results/IBD/IBD_exclusions.txt --pca 10 --allow-no-sex --out /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/PCA/PCA --exclude /Volumes/Natalies_HD/PhD/GCA_PRS/Results/IBD/GCA_pruned.prune.out
+
+
+
+
+
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+STEP 4 - (OPTIONAL) Removal of select variants [PLINK]
+*SEE FILE IN PCA ADJUSTMENTS FOR ADDITIONAL REMOVAL OF VARIANTS FOR PCA
+
+
+Step 4a) Extra step = looking at LD + freq for top variants contributing to PC1 
+
+/Volumes/Natalies_HD/PhD/Tools_Software/plink --bfile /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/all_chr --extract /Volumes/Natalies_HD/PhD/GCA_PRS/Results/PCA/EIGENVAR/extract_freq_LD.txt --r2 --freq --out /Volumes/Natalies_HD/PhD/GCA_PRS/Results/PCA/PC1_loadings/PC1_loadings --allow-no-sex --pheno /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/allccIDs.txt
+
+
+
+Step 4b) PCA with regions (thought to influence PCA) removed
+
+/Volumes/Natalies_HD/PhD/Tools_Software/plink --bfile /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/all_chr --remove /Volumes/Natalies_HD/PhD/GCA_PRS/Results/IBD/IBD_exclusions.txt --pca 10 'var-wts' --allow-no-sex --out /Volumes/Natalies_HD/PhD/GCA_PRS/Results/PCA/EIGENVAR/PCA_RR_for_eigenvar --exclude /Volumes/Natalies_HD/PhD/GCA_PRS/Results/IBD/GCA_pruned_RR.prune.out 
+
+
+
+Step 4c) PCA regions (thought to influence PCA) kept in 
+
+/Volumes/Natalies_HD/PhD/Tools_Software/plink --bfile /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/all_chr --remove /Volumes/Natalies_HD/PhD/GCA_PRS/Results/IBD/IBD_exclusions.txt --pca 10 'var-wts' --allow-no-sex --out /Volumes/Natalies_HD/PhD/GCA_PRS/Results/PCA/EIGENVAR/PCA_v2_for_eigenvar --extract /Volumes/Natalies_HD/PhD/GCA_PRS/Results/IBD/GCA_pruned.prune.in 
+
+
+
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+GWAS [PLINK]
+
+
+Step a) QC - DO LATER
+
+
+
+
+
+Step b) GWAS - PLINK
+
+/Volumes/Natalies_HD/PhD/Tools_Software/plink --dosage /Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/Haras_GWAS/PRE-GWAS/chr20_qc.plink.dosage.gz format=1 case-control-freqs --fam /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/chr20.fam --allow-no-sex --logistic --pheno /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/allccIDs.txt --covar /Volumes/Natalies_HD/PhD/GCA_PRS/Results/PCA/EIGENVAR/PCA_RR_for_eigenvar.eigenvec --out /Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/My_GWAS/chr20 --double-id
+
+
+
+step c) GWAS (logistic beta)
+
+/Volumes/Natalies_HD/PhD/Tools_Software/plink --bfile /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/all_chr --allow-no-sex --logistic beta --ci 0.95 --pheno /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/allccIDs.txt --covar /Volumes/Natalies_HD/PhD/GCA_PRS/Results/PCA/EIGENVAR/PCA_RR_for_eigenvar.eigenvec --out /Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/My_GWAS/all_beta --double-id
+
+
+
+
+
+MENDELIAN RANDOMISATION PREP [PLINK] - MAKE AN R2 (LD) MATRIX
+
+
+/Volumes/Natalies_HD/PhD/Tools_Software/plink --bfile /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/all_chr --r2 --matrix --extract /Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/APOL1_SNPs.txt --out /Volumes/Natalies_HD/PhD/GCA_PRS/GWAS/APOL1_r2_matrix_V2 --write-snplist
+
+
+
+/Volumes/Natalies_HD/PhD/Tools_Software/plink --bfile /Volumes/Natalies_HD/PhD/GCA_PRS/GCA_data/all_chr --r2 --matrix --extract /Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/MRInput_conservative_SNPs.txt --out /Volumes/Natalies_HD/PhD/GCA_PRS/Mendelian_Randomization/APOL1_r2_matrix_conservative --write-snplist
+
+
+
+
